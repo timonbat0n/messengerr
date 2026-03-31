@@ -149,129 +149,22 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, getDoc, setDoc, where, getDocs, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBAF8yT2TZtgJCVjZpsIWusH-25jZh2Cts",
         authDomain: "github-messenger-22bd3.firebaseapp.com",
         projectId: "github-messenger-22bd3",
-        storageBucket: "github-messenger-22bd3.firebasestorage.app",
-        messagingSenderId: "367012361010",
         appId: "1:367012361010:web:d02a53013d1e2387d25d2b"
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
     const auth = getAuth(app);
 
-    let user = null, myNick = "", myName = "", currentChatId = "global", unsubscribe = null, currentFolder = "Все";
-    let allDMs = [], allGroups = [];
-
-    const parseMD = (t) => t.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>').replace(/`(.*?)`/g, '<code>$1</code>');
-
-    onAuthStateChanged(auth, async (u) => {
-        user = u;
-        if (user) {
-            document.getElementById('auth-screen').classList.add('hidden');
-            const snap = await getDoc(doc(db, "users", user.uid));
-            if (snap.exists()) {
-                myNick = snap.data().username; myName = snap.data().name;
-                loadLists(); switchChat('global', 'Глобальный чат');
-            } else { document.getElementById('profile-screen').classList.remove('hidden'); }
-        } else { document.getElementById('auth-screen').classList.remove('hidden'); }
+    onAuthStateChanged(auth, (u) => {
+        if (u) console.log("FIREBASE OK: Юзер зашел как", u.email);
+        else console.log("FIREBASE OK: Жду логина...");
     });
-
-    function loadLists() {
-        onSnapshot(query(collection(db, "chats"), where("users", "array-contains", myNick)), (s) => {
-            allDMs = s.docs.map(d => ({id: d.id, ...d.data()})); renderSidebar();
-        });
-        onSnapshot(query(collection(db, "groups"), where("members", "array-contains", myNick)), (s) => {
-            allGroups = s.docs.map(d => ({id: d.id, ...d.data()})); renderSidebar();
-        });
-    }
-
-    window.setFolder = (f, el) => {
-        currentFolder = f;
-        document.querySelectorAll('.folder-tab').forEach(t => t.classList.remove('active'));
-        el.classList.add('active'); renderSidebar();
-    };
-
-    function renderSidebar() {
-        const dmBox = document.getElementById('dm-list'); dmBox.innerHTML = "";
-        const grBox = document.getElementById('group-list'); grBox.innerHTML = "";
-
-        if (currentFolder === "Все" || currentFolder === "Личные") {
-            allDMs.forEach(d => {
-                const other = d.users.find(u => u !== myNick);
-                dmBox.innerHTML += `<div class="nav-item ${currentChatId===d.id?'active':''}" onclick="switchChat('${d.id}', '@${other}')">💬 @${other}</div>`;
-            });
-        }
-        if (currentFolder === "Все" || currentFolder === "Группы") {
-            allGroups.forEach(d => {
-                grBox.innerHTML += `<div class="nav-item ${currentChatId===d.id?'active':''}" onclick="switchChat('${d.id}', '👥 ${d.name}')">👥 ${d.name}</div>`;
-            });
-        }
-    }
-
-    window.switchChat = (id, title) => {
-        currentChatId = id;
-        document.getElementById('chat-title').innerText = title;
-        document.getElementById('sidebar').classList.remove('open');
-        document.getElementById('clearBtn').classList.toggle('hidden', myNick !== 'timon');
-
-        if (unsubscribe) unsubscribe();
-        const q = query(collection(db, "messages"), where("chatId", "==", id));
-        unsubscribe = onSnapshot(q, (snap) => {
-            const box = document.getElementById('messages');
-            let msgs = snap.docs.map(d => ({id: d.id, ...d.data()}));
-            msgs.sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-            box.innerHTML = "";
-            msgs.forEach(m => {
-                const isMe = m.uid === user?.uid;
-                box.innerHTML += `
-                <div style="display:flex; flex-direction:column; align-self:${isMe?'flex-end':'flex-start'}; max-width:85%">
-                    <span style="font-size:10px; opacity:0.5; margin: 0 5px">${m.senderName}</span>
-                    <div class="bubble" style="background:${isMe?'var(--accent)':'var(--bubble-other)'}; color:${isMe?'#white':'inherit'}; padding:10px 14px; border-radius:18px; margin-top:2px;">
-                        ${parseMD(m.text)}
-                    </div>
-                </div>`;
-            });
-            box.scrollTop = box.scrollHeight;
-        });
-    };
-
-    window.sendMsg = async (opts = {}) => {
-        const val = mInput.value.trim();
-        if (!val || !user) return;
-        mInput.value = "";
-        await addDoc(collection(db, "messages"), {
-            chatId: currentChatId, text: val, uid: user.uid, 
-            senderName: myName, senderNick: myNick, createdAt: serverTimestamp(), silent: opts.silent || false
-        });
-    };
-
-    // UI Events
-    document.getElementById('loginBtn').onclick = () => signInWithEmailAndPassword(auth, email.value, pass.value).catch(e => alert(e.message));
-    document.getElementById('regBtn').onclick = () => createUserWithEmailAndPassword(auth, email.value, pass.value).catch(e => alert(e.message));
-    document.getElementById('saveProfBtn').onclick = async () => {
-        await setDoc(doc(db, "users", user.uid), { username: pNick.value.toLowerCase(), name: pName.value, createdAt: serverTimestamp() });
-        location.reload();
-    };
-    document.getElementById('sendBtn').onclick = () => sendMsg();
-    document.getElementById('mInput').onkeydown = (e) => e.key === 'Enter' && sendMsg();
-
-    // Long Press
-    let lp;
-    const btn = document.getElementById('sendBtn');
-    btn.onmousedown = btn.ontouchstart = () => lp = setTimeout(() => document.getElementById('send-ctx-menu').style.display='flex', 600);
-    btn.onmouseup = btn.ontouchend = () => clearTimeout(lp);
-
-    window.handleAction = (a) => {
-        document.getElementById('send-ctx-menu').style.display='none';
-        if(a === 'silent') sendMsg({silent: true});
-    };
-
 </script>
 </body>
 </html>
