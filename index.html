@@ -3,98 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LiveMes. | Official</title>
+    <title>LiveMes. | Cyber-Glass</title>
     <style>
-        :root { --neon: #39FF14; --glass: rgba(255, 255, 255, 0.07); --border: rgba(255, 255, 255, 0.12); }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; overflow: hidden; }
+        :root { 
+            --accent: #00d2ff; 
+            --bg: #05070a; 
+            --glass: rgba(255, 255, 255, 0.03); 
+            --border: rgba(255, 255, 255, 0.08);
+            --font: 'Inter', -apple-system, sans-serif;
+        }
+        
+        body { 
+            font-family: var(--font); background: var(--bg); color: #fff; 
+            margin: 0; height: 100vh; display: flex; overflow: hidden; 
+        }
 
-        /* Сайдбар */
-        #sidebar { width: 70px; background: #0a0a0a; border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 25px; z-index: 10; }
-        .chat-icon { width: 48px; height: 48px; border-radius: 14px; background: var(--glass); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; font-size: 22px; }
-        .chat-icon.active { border-color: var(--neon); box-shadow: 0 0 15px rgba(57, 255, 20, 0.2); background: rgba(57, 255, 20, 0.05); }
+        /* Sidebar - Ultra Minimal */
+        #sidebar { 
+            width: 75px; background: rgba(0,0,0,0.4); border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; align-items: center; padding: 25px 0; gap: 30px; backdrop-filter: blur(20px);
+        }
+        .chat-icon { 
+            width: 50px; height: 50px; border-radius: 16px; background: var(--glass); 
+            border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); font-size: 20px;
+        }
+        .chat-icon:hover { transform: scale(1.1); border-color: var(--accent); color: var(--accent); }
+        .chat-icon.active { background: var(--accent); color: #000; border: none; box-shadow: 0 0 20px rgba(0, 210, 255, 0.4); }
 
-        /* Основной экран */
-        #main { flex: 1; display: flex; flex-direction: column; background: radial-gradient(circle at top right, #111, #000); position: relative; }
-        #header { padding: 15px 20px; background: rgba(0,0,0,0.8); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(10px); }
-        #header h1 { font-size: 1.2em; margin: 0; color: var(--neon); letter-spacing: 1.5px; font-weight: 800; }
+        /* Main Content */
+        #main { flex: 1; display: flex; flex-direction: column; position: relative; background: radial-gradient(circle at top right, #0a111a, #05070a); }
+        
+        #header { 
+            padding: 20px 25px; background: rgba(5, 7, 10, 0.8); border-bottom: 1px solid var(--border); 
+            display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(10px);
+        }
+        #header h1 { font-size: 1.3em; margin: 0; font-weight: 900; letter-spacing: -0.5px; background: linear-gradient(to right, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-        /* Лента сообщений */
-        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
-        .msg-row { display: flex; gap: 10px; max-width: 85%; animation: msgAppear 0.2s ease-out; }
+        /* Messages Area */
+        #messages { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
+        .msg-row { display: flex; gap: 12px; max-width: 80%; animation: fadeInUp 0.4s ease forwards; opacity: 0; }
         .my-msg { align-self: flex-end; flex-direction: row-reverse; }
         
-        .bubble { background: var(--glass); padding: 10px 14px; border-radius: 18px; border: 1px solid var(--border); backdrop-filter: blur(5px); position: relative; }
-        .my-msg .bubble { border-color: var(--neon); background: rgba(57, 255, 20, 0.03); }
-        .bubble b { color: var(--neon); font-size: 0.75em; display: block; margin-bottom: 4px; opacity: 0.8; }
+        .bubble { 
+            background: var(--glass); padding: 12px 16px; border-radius: 20px; border: 1px solid var(--border); 
+            position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .my-msg .bubble { background: rgba(0, 210, 255, 0.05); border-color: rgba(0, 210, 255, 0.3); }
+        .bubble b { color: var(--accent); font-size: 0.75em; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
         
-        .chat-img { max-width: 100%; border-radius: 12px; margin-top: 8px; border: 1px solid var(--border); cursor: pointer; transition: transform 0.2s; }
-        .chat-img:hover { transform: scale(1.02); }
+        .chat-img { max-width: 100%; border-radius: 14px; margin-top: 10px; border: 1px solid var(--border); display: block; }
 
-        /* Поле ввода */
-        #footer { padding: 15px; background: rgba(0,0,0,0.9); display: flex; gap: 12px; align-items: center; border-top: 1px solid var(--border); }
-        #mInput { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 12px 20px; border-radius: 25px; outline: none; flex: 1; font-size: 15px; }
-        #mInput:focus { border-color: var(--neon); }
-        .icon-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #666; transition: 0.2s; padding: 0; display: flex; align-items: center; }
-        .icon-btn:hover { color: var(--neon); transform: scale(1.1); }
-
-        /* Модальные окна */
-        .modal { position: absolute; inset: 0; background: #000; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .card { background: #111; padding: 35px; border-radius: 30px; border: 1px solid var(--border); width: 100%; max-width: 320px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
-        .card input { width: 100%; box-sizing: border-box; background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 14px; border-radius: 15px; margin-bottom: 15px; outline: none; text-align: center; }
-        .btn-main { background: var(--neon); color: #000; border: none; padding: 15px; border-radius: 15px; font-weight: 800; width: 100%; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; }
-        .btn-main:hover { box-shadow: 0 0 20px rgba(57, 255, 20, 0.4); transform: translateY(-2px); }
+        /* Input Bar */
+        #footer { padding: 20px; background: transparent; display: flex; gap: 15px; align-items: center; }
+        .input-wrapper { 
+            flex: 1; background: var(--glass); border: 1px solid var(--border); 
+            border-radius: 30px; display: flex; align-items: center; padding: 5px 15px; transition: 0.3s;
+        }
+        .input-wrapper:focus-within { border-color: var(--accent); background: rgba(255,255,255,0.05); }
         
-        #progress-bar { height: 3px; background: var(--neon); position: absolute; top: 0; left: 0; width: 0%; z-index: 2000; transition: 0.3s; box-shadow: 0 0 10px var(--neon); }
+        #mInput { background: none; border: none; color: #fff; padding: 12px; outline: none; flex: 1; font-size: 15px; }
+        .icon-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: #555; transition: 0.2s; }
+        .icon-btn:hover { color: var(--accent); }
+
+        /* Modals */
+        .modal { position: absolute; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(15px); }
+        .card { background: #0a0c10; padding: 40px; border-radius: 35px; border: 1px solid var(--border); width: 300px; text-align: center; }
+        .btn-primary { 
+            background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 20px; 
+            font-weight: 800; width: 100%; cursor: pointer; margin-top: 20px; transition: 0.3s;
+        }
+        .btn-primary:hover { box-shadow: 0 10px 25px rgba(0, 210, 255, 0.3); transform: translateY(-3px); }
+
         .hidden { display: none !important; }
-        @keyframes msgAppear { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div id="progress-bar"></div>
-
     <div id="username-screen" class="modal hidden">
         <div class="card">
-            <h2 style="color: var(--neon); margin-top: 0;">LiveMes. ID</h2>
-            <p style="color: #777; font-size: 0.9em; margin-bottom: 20px;">Придумай свой уникальный @username</p>
-            <input type="text" id="newUsername" placeholder="твой_ник">
-            <button class="btn-main" onclick="setupUsername()">ПОДТВЕРДИТЬ</button>
+            <h2 style="margin-top:0">LiveMes. <span style="color:var(--accent)">ID</span></h2>
+            <input type="text" id="newUsername" placeholder="твой ник" style="width:100%; padding:15px; border-radius:15px; border:1px solid #333; background:#000; color:#fff; text-align:center;">
+            <button class="btn-primary" onclick="setupUsername()">АКТИВИРОВАТЬ</button>
         </div>
     </div>
 
     <div id="auth-screen" class="modal">
         <div class="card">
-            <h1 style="color: var(--neon); font-size: 2.5em; margin: 0 0 10px 0;">LiveMes.</h1>
-            <p style="color: #555; margin-bottom: 25px;">Enter the system</p>
-            <input type="email" id="email" placeholder="Email">
-            <input type="password" id="pass" placeholder="Password">
-            <button class="btn-main" onclick="login()">ВХОД</button>
-            <button onclick="register()" style="background:none; border:none; color:#444; margin-top:20px; text-decoration:underline; cursor:pointer;">Регистрация</button>
+            <h1>LiveMes<span style="color:var(--accent)">.</span></h1>
+            <input type="email" id="email" placeholder="Email" style="width:100%; padding:15px; border-radius:15px; border:1px solid #333; background:#000; color:#fff; margin-bottom:10px;">
+            <input type="password" id="pass" placeholder="Password" style="width:100%; padding:15px; border-radius:15px; border:1px solid #333; background:#000; color:#fff;">
+            <button class="btn-primary" onclick="login()">ВОЙТИ</button>
+            <p onclick="register()" style="color:#444; font-size:0.8em; margin-top:20px; cursor:pointer; text-decoration:underline">Создать аккаунт</p>
         </div>
     </div>
 
     <div id="sidebar">
-        <div class="chat-icon active" id="btn-global" onclick="switchChat('global')">🌍</div>
+        <div class="chat-icon active" id="btn-global" onclick="switchChat('global')">💠</div>
         <div class="chat-icon" onclick="findUser()">🔍</div>
-        <div class="chat-icon" onclick="logout()" style="margin-top: auto; color: #ff4444; border-color: rgba(255,68,68,0.2);">🚪</div>
+        <div class="chat-icon" onclick="logout()" style="margin-top: auto;">🔌</div>
     </div>
 
     <div id="main">
         <div id="header">
-            <h1 id="brand">LiveMes.</h1>
-            <div id="chat-info" style="text-align: right;">
-                <div id="chat-title" style="font-weight: bold; color: #fff;">Global Chat</div>
-                <div id="my-handle" style="font-size: 0.7em; color: var(--neon); opacity: 0.8;"></div>
-            </div>
+            <h1>LiveMes.</h1>
+            <div id="status" style="font-size:0.7em; color:var(--accent); letter-spacing:1px">ONLINE</div>
         </div>
 
         <div id="messages"></div>
 
         <div id="footer">
             <input type="file" id="fileInput" class="hidden" accept="image/*">
-            <button class="icon-btn" onclick="document.getElementById('fileInput').click()">📎</button>
-            <input type="text" id="mInput" placeholder="Write a message...">
-            <button id="sendBtn" class="icon-btn" style="color: var(--neon)">🚀</button>
+            <div class="input-wrapper">
+                <button class="icon-btn" onclick="document.getElementById('fileInput').click()">📎</button>
+                <input type="text" id="mInput" placeholder="Введите сообщение...">
+                <button id="sendBtn" class="icon-btn" style="color:var(--accent)">✦</button>
+            </div>
         </div>
     </div>
 
@@ -112,9 +137,6 @@
         appId: "1:367012361010:web:d02a53013d1e2387d25d2b"
     };
 
-    // Бесплатный API ключ ImgBB (уже активен)
-    const imgbbKey = "6d207e02198a847aa98d0a2a901485a5";
-
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
@@ -125,8 +147,8 @@
     let unsubscribe = null;
 
     // --- AUTH ---
-    window.login = () => signInWithEmailAndPassword(auth, email.value, pass.value).catch(e => alert("Ошибка: " + e.message));
-    window.register = () => createUserWithEmailAndPassword(auth, email.value, pass.value).catch(e => alert("Аккаунт создан! Теперь войдите."));
+    window.login = () => signInWithEmailAndPassword(auth, email.value, pass.value).catch(e => alert(e.message));
+    window.register = () => createUserWithEmailAndPassword(auth, email.value, pass.value).then(() => alert("Готово! Теперь войдите."));
     window.logout = () => signOut(auth);
 
     onAuthStateChanged(auth, async (u) => {
@@ -136,7 +158,6 @@
             const snap = await getDoc(doc(db, "users", user.uid));
             if (snap.exists()) {
                 myNick = snap.data().username;
-                document.getElementById('my-handle').innerText = "@" + myNick;
                 switchChat('global');
             } else {
                 document.getElementById('username-screen').classList.remove('hidden');
@@ -147,59 +168,45 @@
     });
 
     window.setupUsername = async () => {
-        const nick = newUsername.value.trim().toLowerCase().replace('@','');
-        if (nick.length < 3) return alert("Минимум 3 символа");
-        const q = query(collection(db, "users"), where("username", "==", nick));
-        const check = await getDocs(q);
-        if (!check.empty) return alert("Ник уже занят!");
-
+        const nick = newUsername.value.trim().toLowerCase();
+        if (nick.length < 3) return alert("Слишком коротко");
         await setDoc(doc(db, "users", user.uid), { username: nick, email: user.email });
         myNick = nick;
-        document.getElementById('my-handle').innerText = "@" + myNick;
         document.getElementById('username-screen').classList.add('hidden');
         switchChat('global');
     };
 
-    // --- MESSAGING ---
+    // --- MESSAGES ---
     const sendMsg = async (text = "", img = "") => {
         if (!user || (!text && !img)) return;
-        await addDoc(collection(db, "messages"), {
-            chatId: currentChatId,
-            uid: user.uid,
-            sender: "@" + myNick,
-            text: text,
-            img: img,
-            createdAt: serverTimestamp()
-        });
-        mInput.value = "";
+        try {
+            await addDoc(collection(db, "messages"), {
+                chatId: currentChatId,
+                uid: user.uid,
+                sender: "@" + myNick,
+                text: text,
+                img: img,
+                createdAt: serverTimestamp()
+            });
+            mInput.value = "";
+        } catch(e) { alert("Ошибка отправки. Возможно, файл слишком большой."); }
     };
 
     document.getElementById('sendBtn').onclick = () => sendMsg(mInput.value);
-    mInput.onkeydown = (e) => { if(e.key === 'Enter') sendMsg(mInput.value); };
 
-    // --- IMAGE UPLOAD (ImgBB) ---
-    document.getElementById('fileInput').onchange = async (e) => {
+    // --- IMAGE TO BASE64 (The Workaround) ---
+    document.getElementById('fileInput').onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        const formData = new FormData();
-        formData.append("image", file);
-        document.getElementById('progress-bar').style.width = "40%";
+        // Ограничиваем размер (Firestore не любит документы > 1MB)
+        if (file.size > 800000) return alert("Файл слишком большой! Выбери фото полегче.");
 
-        try {
-            const res = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
-                method: "POST",
-                body: formData
-            });
-            const data = await res.json();
-            if (data.success) {
-                sendMsg("", data.data.url);
-            }
-        } catch (err) {
-            alert("Ошибка сети при загрузке фото");
-        } finally {
-            document.getElementById('progress-bar').style.width = "0%";
-        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            sendMsg("", reader.result); // reader.result - это и есть картинка в коде
+        };
+        reader.readAsDataURL(file);
     };
 
     function loadMessages() {
@@ -227,18 +234,10 @@
         });
     }
 
-    window.switchChat = (id) => { 
-        currentChatId = id; 
-        document.getElementById('chat-title').innerText = id === 'global' ? 'Global Chat' : 'Private DM';
-        loadMessages(); 
-    };
-
+    window.switchChat = (id) => { currentChatId = id; loadMessages(); };
     window.findUser = async () => {
-        const target = prompt("Enter @username:").toLowerCase().replace('@','');
-        const q = query(collection(db, "users"), where("username", "==", target));
-        const snap = await getDocs(q);
-        if (snap.empty) return alert("User not found!");
-        const dmId = [myNick, target].sort().join("_");
+        const t = prompt("Ник собеседника:").toLowerCase();
+        const dmId = [myNick, t].sort().join("_");
         switchChat(dmId);
     };
 
