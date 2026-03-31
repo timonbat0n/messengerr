@@ -290,15 +290,45 @@ function updateUI() {
         }
     };
 
-    window.sendMsg = async () => {
-        const val = mInput.value.trim();
-        if (!val || !user) return;
-        mInput.value = "";
+window.sendMsg = async () => {
+    const input = document.getElementById('mInput');
+    const val = input.value.trim();
+
+    // Проверка перед отправкой
+    if (!val) return; 
+    if (!user) {
+        console.error("Ошибка: Пользователь не авторизован!");
+        alert("Войдите в аккаунт!");
+        return;
+    }
+    if (!currentChatId) {
+        console.error("Ошибка: Чат не выбран!");
+        return;
+    }
+
+    console.log("Отправка в чат:", currentChatId, "от:", myNick);
+
+    try {
+        // Очищаем поле сразу для скорости UI
+        input.value = "";
+        
         await addDoc(collection(db, "messages"), {
-            chatId: currentChatId, text: val, uid: user.uid, 
-            senderName: myName, senderNick: myNick, createdAt: serverTimestamp()
+            chatId: currentChatId,
+            text: val,
+            uid: user.uid,
+            senderName: myName,
+            senderNick: myNick,
+            createdAt: serverTimestamp()
         });
-    };
+        
+        console.log("✅ Сообщение успешно доставлено в Firestore!");
+    } catch (error) {
+        console.error("❌ ОШИБКА ОТПРАВКИ:", error);
+        // Возвращаем текст в поле, если не отправилось
+        input.value = val; 
+        alert("Ошибка при отправке: " + error.message);
+    }
+};
 
     window.deleteCurrentChat = async () => {
         if (currentChatId !== 'global' && confirm("Удалить этот чат?")) {
