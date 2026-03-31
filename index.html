@@ -321,8 +321,59 @@
         }
     };
 
-    document.getElementById('sendBtn').onclick = sendMsg;
-    document.getElementById('mInput').onkeydown = (e) => e.key === 'Enter' && sendMsg();
+    // Ждем, пока DOM полностью загрузится
+document.addEventListener('DOMContentLoaded', () => {
+    const sBtn = document.getElementById('sendBtn');
+    const input = document.getElementById('mInput');
+
+    if (sBtn) {
+        sBtn.addEventListener('click', () => {
+            console.log(">>> Клик по кнопке зафиксирован!");
+            window.sendMsg();
+        });
+    } else {
+        console.error("!!! Кнопка sendBtn не найдена в HTML");
+    }
+
+    if (input) {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                console.log(">>> Нажат Enter!");
+                window.sendMsg();
+            }
+        });
+    }
+});
+
+// На всякий случай дублируем в window, чтобы onclick в HTML (если он остался) тоже видел функцию
+window.sendMsg = async () => {
+    console.log("Функция sendMsg вызвана. Текущий статус:", { 
+        user: user ? "Авторизован" : "НЕТ ЮЗЕРА", 
+        chat: currentChatId,
+        text: document.getElementById('mInput').value 
+    });
+
+    const input = document.getElementById('mInput');
+    const val = input.value.trim();
+
+    if (!val || !user || !currentChatId) return;
+
+    try {
+        input.value = "";
+        await addDoc(collection(db, "messages"), {
+            chatId: currentChatId,
+            text: val,
+            uid: user.uid,
+            senderName: myName,
+            senderNick: myNick,
+            createdAt: serverTimestamp()
+        });
+        console.log("✅ Сообщение ушло в Firebase!");
+    } catch (e) {
+        console.error("❌ Ошибка Firestore:", e);
+        input.value = val;
+    }
+};
 </script>
 </body>
 </html>
