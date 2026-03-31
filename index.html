@@ -125,7 +125,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, arrayUnion, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, arrayUnion, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -143,8 +143,15 @@
 
     let user = null, myNick = "", myName = "", currentChatId = "global", unsubscribe = null;
 
-    window.toggleSidebar = () => { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('active'); };
-    window.toggleTheme = () => { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); };
+    window.toggleSidebar = () => { 
+        document.getElementById('sidebar').classList.toggle('open'); 
+        document.getElementById('overlay').classList.toggle('active'); 
+    };
+    
+    window.toggleTheme = () => { 
+        const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        document.body.setAttribute('data-theme', next); 
+    };
 
     onAuthStateChanged(auth, async (u) => {
         user = u;
@@ -152,29 +159,40 @@
             document.getElementById('auth-screen').classList.add('hidden');
             const snap = await getDoc(doc(db, "users", user.uid));
             if (snap.exists()) {
-                const d = snap.data(); myNick = d.username; myName = d.name || d.username;
-                loadMyDMs(); loadMyGroups(); switchChat('global', 'Глобальный чат');
-            } else { document.getElementById('profile-screen').classList.remove('hidden'); }
-        } else { document.getElementById('auth-screen').classList.remove('hidden'); }
+                const d = snap.data(); 
+                myNick = d.username; 
+                myName = d.name || d.username;
+                loadMyDMs(); 
+                loadMyGroups(); 
+                switchChat('global', '🌐 Глобальный чат');
+            } else { 
+                document.getElementById('profile-screen').classList.remove('hidden'); 
+            }
+        } else { 
+            document.getElementById('auth-screen').classList.remove('hidden'); 
+        }
     });
 
     window.saveProfile = async () => {
-        const nick = pNick.value.trim().toLowerCase(); const name = pName.value.trim();
+        const nick = pNick.value.trim().toLowerCase(); 
+        const name = pName.value.trim();
         if (nick.length < 3 || !name) return alert("Заполни все поля");
         await setDoc(doc(db, "users", user.uid), { username: nick, name: name, online: true });
         location.reload();
     };
 
-    window.login = () => signInWithEmailAndPassword(auth, email.value, pass.value);
-    window.register = () => createUserWithEmailAndPassword(auth, email.value, pass.value);
+    window.login = () => signInWithEmailAndPassword(auth, email.value, pass.value).catch(e => alert(e.message));
+    window.register = () => createUserWithEmailAndPassword(auth, email.value, pass.value).catch(e => alert(e.message));
 
     function loadMyDMs() {
         onSnapshot(query(collection(db, "chats"), where("users", "array-contains", myNick)), (snap) => {
             const list = document.getElementById('dm-list'); list.innerHTML = "";
             snap.forEach(d => {
                 const other = d.data().users.find(u => u !== myNick);
-                const div = document.createElement('div'); div.className = `nav-item ${currentChatId === d.id ? 'active' : ''}`;
-                div.innerHTML = `💬 @${other}`; div.onclick = () => { switchChat(d.id, "💬 " + other); if(window.innerWidth < 768) toggleSidebar(); };
+                const div = document.createElement('div'); 
+                div.className = `nav-item ${currentChatId === d.id ? 'active' : ''}`;
+                div.innerHTML = `💬 @${other}`; 
+                div.onclick = () => { switchChat(d.id, "@" + other); if(window.innerWidth < 768) toggleSidebar(); };
                 list.appendChild(div);
             });
         });
@@ -185,41 +203,33 @@
             const list = document.getElementById('group-list'); list.innerHTML = "";
             snap.forEach(d => {
                 const g = d.data();
-                const div = document.createElement('div'); div.className = `nav-item ${currentChatId === g.id ? 'active' : ''}`;
-                div.innerHTML = `👥 ${g.name}`; div.onclick = () => { switchChat(g.id, "👥 " + g.name); if(window.innerWidth < 768) toggleSidebar(); };
+                const div = document.createElement('div'); 
+                div.className = `nav-item ${currentChatId === g.id ? 'active' : ''}`;
+                div.innerHTML = `👥 ${g.name}`; 
+                div.onclick = () => { switchChat(g.id, g.name); if(window.innerWidth < 768) toggleSidebar(); };
                 list.appendChild(div);
             });
         });
     }
 
-    window.findAny = async () => {
-        const val = globalSearch.value.trim().toLowerCase();
-        if (!val || val === myNick) return;
-        const qU = query(collection(db, "users"), where("username", "==", val));
-        const snapU = await getDocs(qU);
-        if (!snapU.empty) {
-            const target = snapU.docs[0].data().username; const dmId = [myNick, target].sort().join("_");
-            await setDoc(doc(db, "chats", dmId), { id: dmId, users: [myNick, target], lastUpdate: serverTimestamp() });
-            switchChat(dmId, "💬 " + target);
-        } else {
-            const gSnap = await getDoc(doc(db, "groups", val));
-            if (gSnap.exists()) { await updateDoc(doc(db, "groups", val), { members: arrayUnion(myNick) }); switchChat(val, "👥 " + gSnap.data().name); }
-            else alert("Не найдено");
-        }
-        globalSearch.value = "";
-    };
-
     window.switchChat = async (id, title) => {
-        currentChatId = id; document.getElementById('chat-title').innerText = title;
+        currentChatId = id; 
+        document.getElementById('chat-title').innerText = title;
         if (unsubscribe) unsubscribe();
-        unsubscribe = onSnapshot(query(collection(db, "messages"), orderBy("createdAt", "asc")), (snap) => {
-            const box = document.getElementById('messages'); box.innerHTML = "";
+
+        // Фильтруем сообщения по chatId сразу в запросе
+        const q = query(collection(db, "messages"), where("chatId", "==", currentChatId), orderBy("createdAt", "asc"));
+        
+        unsubscribe = onSnapshot(q, (snap) => {
+            const box = document.getElementById('messages');
+            box.innerHTML = "";
             snap.forEach(docSnap => {
-                const d = docSnap.data(); if (d.chatId !== currentChatId) return;
+                const d = docSnap.data();
                 const isMe = d.uid === user.uid;
-                const div = document.createElement('div'); div.className = `msg-row ${isMe ? 'my-msg' : 'other-msg'}`;
-                // Исправляем отображение имен:
+                const div = document.createElement('div'); 
+                div.className = `msg-row ${isMe ? 'my-msg' : 'other-msg'}`;
                 const nameToShow = d.senderName || d.senderNick || "Гость";
+                
                 div.innerHTML = `
                     <div style="font-size:11px; opacity:0.6; margin-bottom:2px; font-weight:bold;">
                         ${d.senderNick === 'timon' ? '<span class="admin-star">★</span>' : ''}${nameToShow}
@@ -231,19 +241,60 @@
         });
     };
 
-    const sendMsg = async (text = "", img = "") => {
-        if (!user || (!text && !img)) return;
-        await addDoc(collection(db, "messages"), { chatId: currentChatId, senderNick: myNick, senderName: myName, uid: user.uid, text, img, createdAt: serverTimestamp() });
+    const sendMsg = async (val) => {
+        const text = val ? val.trim() : mInput.value.trim();
+        const file = document.getElementById('fileInput').files[0];
+        
+        if (!user || (!text && !file)) return;
+
+        let imgData = "";
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                await addDoc(collection(db, "messages"), {
+                    chatId: currentChatId,
+                    senderNick: myNick,
+                    senderName: myName,
+                    uid: user.uid,
+                    text: text,
+                    img: reader.result,
+                    createdAt: serverTimestamp()
+                });
+                document.getElementById('fileInput').value = "";
+            };
+            reader.readAsDataURL(file);
+        } else {
+            await addDoc(collection(db, "messages"), {
+                chatId: currentChatId,
+                senderNick: myNick,
+                senderName: myName,
+                uid: user.uid,
+                text: text,
+                img: "",
+                createdAt: serverTimestamp()
+            });
+        }
         mInput.value = "";
     };
 
-    document.getElementById('sendBtn').onclick = () => sendMsg(mInput.value);
-    mInput.onkeydown = (e) => e.key === 'Enter' && sendMsg(mInput.value);
-    document.getElementById('fileInput').onchange = (e) => {
-        const file = e.target.files[0]; if (file) {
-            const reader = new FileReader(); reader.onloadend = () => sendMsg("", reader.result); reader.readAsDataURL(file);
+    window.findAny = async () => {
+        const val = globalSearch.value.trim().toLowerCase();
+        if (!val || val === myNick) return;
+        const qU = query(collection(db, "users"), where("username", "==", val));
+        const snapU = await getDocs(qU);
+        if (!snapU.empty) {
+            const target = snapU.docs[0].data().username; 
+            const dmId = [myNick, target].sort().join("_");
+            await setDoc(doc(db, "chats", dmId), { id: dmId, users: [myNick, target], lastUpdate: serverTimestamp() });
+            switchChat(dmId, "@" + target);
+        } else {
+            alert("Пользователь не найден");
         }
+        globalSearch.value = "";
     };
+
+    document.getElementById('sendBtn').onclick = () => sendMsg();
+    document.getElementById('mInput').onkeydown = (e) => { if(e.key === 'Enter') sendMsg(); };
 </script>
 </body>
 </html>
