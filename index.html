@@ -154,68 +154,84 @@
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-// Добавляем специальные функции для настройки базы
-import { 
-    initializeFirestore, 
-    persistentLocalCache, 
-    persistentMultipleTabManager,
-    collection, addDoc, query, onSnapshot, serverTimestamp, doc, getDoc, setDoc, where, deleteDoc 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+        initializeFirestore, 
+        persistentLocalCache, 
+        persistentMultipleTabManager,
+        collection, addDoc, query, onSnapshot, serverTimestamp, doc, getDoc, setDoc, where, deleteDoc 
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyBAF8yT2TZtgJCVjZpsIWusH-25jZh2Cts",
-    authDomain: "github-messenger-22bd3.firebaseapp.com",
-    databaseURL: "https://github-messenger-22bd3-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "github-messenger-22bd3",
-    storageBucket: "github-messenger-22bd3.firebasestorage.app",
-    messagingSenderId: "367012361010",
-    appId: "1:367012361010:web:d02a53013d1e2387d25d2b"
-};
+    const firebaseConfig = {
+        apiKey: "AIzaSyBAF8yT2TZtgJCVjZpsIWusH-25jZh2Cts",
+        authDomain: "github-messenger-22bd3.firebaseapp.com",
+        databaseURL: "https://github-messenger-22bd3-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "github-messenger-22bd3",
+        storageBucket: "github-messenger-22bd3.firebasedatabase.app",
+        messagingSenderId: "367012361010",
+        appId: "1:367012361010:web:d02a53013d1e2387d25d2b"
+    };
 
-// 1. Инициализируем приложение
-const app = initializeApp(firebaseConfig);
+    // 1. Инициализация
+    const app = initializeApp(firebaseConfig);
+    const db = initializeFirestore(app, {
+        experimentalForceLongPolling: true, // ФИКС OFFLINE ОШИБКИ
+        localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+    });
+    const auth = getAuth(app);
 
-// 2. Инициализируем Firestore с ПРИНУДИТЕЛЬНЫМ длинным опросом (Long Polling)
-// Это обходит блокировки WebSockets
-const db = initializeFirestore(app, {
-    experimentalForceLongPolling: true,
-    localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
-});
+    // ОБЪЯВЛЯЕМ ПЕРЕМЕННЫЕ (Без них код выдает ошибку ReferenceError)
+    let user = null;
+    let myNick = "";
+    let myName = "";
+    let currentChatId = "global";
+    let unsubscribe = null;
+    let currentFolder = "Все";
+    let allChats = [];
+    let isRegMode = false;
 
-// 3. Инициализируем Auth
-const auth = getAuth(app);
-    // Авторизация
+    const parseMD = (t) => t.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>').replace(/`(.*?)`/g, '<code>$1</code>');
+
+    // Обновление интерфейса профиля
+    const updateUI = () => {
+        const nameEl = document.getElementById('u-name');
+        const nickEl = document.getElementById('u-nick');
+        const avatarEl = document.getElementById('u-avatar');
+        if (nameEl) nameEl.innerText = myName || "Пользователь";
+        if (nickEl) nickEl.innerText = "@" + (myNick || "user");
+        if (avatarEl) avatarEl.innerText = (myName ? myName[0] : "?").toUpperCase();
+    };
+
+    // Следим за состоянием входа
     onAuthStateChanged(auth, async (u) => {
+        console.log("Статус входа:", u ? "Вошел" : "Вышел");
         if (u) {
             user = u;
-            const snap = await getDoc(doc(db, "users", user.uid));
-            if (snap.exists()) {
-                myNick = snap.data().username; myName = snap.data().name;
-                document.getElementById('auth-screen').classList.add('hidden');
-                updateUI(); loadSidebar(); switchChat('global', 'Глобальный чат');
+            document.getElementById('auth-screen').classList.add('hidden');
+            try {
+                const snap = await getDoc(doc(db, "users", u.uid));
+                if (snap.exists()) {
+                    myNick = snap.data().username;
+                    myName = snap.data().name;
+                    console.log("Профиль загружен:", myNick);
+                } else {
+                    console.warn("Профиль не найден, создаем временный...");
+                    myNick = u.email.split('@')[0];
+                    myName = myNick;
+                }
+                updateUI();
+                loadSidebar();
+                switchChat('global', 'Глобальный чат');
+            } catch (err) {
+                console.error("Ошибка загрузки профиля:", err);
             }
         } else {
             document.getElementById('auth-screen').classList.remove('hidden');
         }
     });
 
-    const updateUI = () => {
-        document.getElementById('u-name').innerText = myName || "Пользователь";
-        document.getElementById('u-nick').innerText = "@" + (myNick || "user");
-        document.getElementById('u-avatar').innerText = (myName ? myName[0] : "?").toUpperCase();
-    };
-
-    // Переключатель входа/регистрации
-    document.getElementById('auth-toggle').onclick = () => {
-        isRegMode = !isRegMode;
-        document.getElementById('auth-title').innerText = isRegMode ? "Регистрация" : "LiveMes.";
-        document.getElementById('auth-btn').innerText = isRegMode ? "Создать аккаунт" : "Войти";
-        document.getElementById('reg-fields').classList.toggle('hidden', !isRegMode);
-        document.getElementById('auth-toggle').innerHTML = isRegMode ? "Уже есть аккаунт? <b>Войти</b>" : "Нет аккаунта? <b>Зарегистрироваться</b>";
-    };
-
+    // Авторизация и регистрация
     document.getElementById('auth-btn').onclick = async () => {
         const mail = document.getElementById('email').value;
         const pass = document.getElementById('pass').value;
@@ -232,11 +248,20 @@ const auth = getAuth(app);
             } else {
                 await signInWithEmailAndPassword(auth, mail, pass);
             }
-        } catch (e) { alert(e.message); }
+        } catch (e) { alert("Ошибка: " + e.message); }
     };
 
-    // Чаты
+    document.getElementById('auth-toggle').onclick = () => {
+        isRegMode = !isRegMode;
+        document.getElementById('auth-title').innerText = isRegMode ? "Регистрация" : "LiveMes.";
+        document.getElementById('auth-btn').innerText = isRegMode ? "Создать аккаунт" : "Войти";
+        document.getElementById('reg-fields').classList.toggle('hidden', !isRegMode);
+        document.getElementById('auth-toggle').innerHTML = isRegMode ? "Уже есть аккаунт? <b>Войти</b>" : "Нет аккаунта? <b>Зарегистрироваться</b>";
+    };
+
+    // Работа с чатами
     const loadSidebar = () => {
+        if (!myNick) return;
         const q = query(collection(db, "chats"), where("users", "array-contains", myNick.toLowerCase()));
         onSnapshot(q, (snap) => {
             allChats = snap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -246,6 +271,7 @@ const auth = getAuth(app);
 
     const renderChats = () => {
         const container = document.getElementById('chat-items-container');
+        if (!container) return;
         container.innerHTML = "";
         let filtered = allChats;
         if (currentFolder === "Личные") filtered = allChats.filter(c => !c.isGroup);
@@ -253,7 +279,7 @@ const auth = getAuth(app);
 
         filtered.forEach(chat => {
             const other = chat.users.find(u => u !== myNick.toLowerCase());
-            const title = chat.isGroup ? chat.name : "@" + other;
+            const title = chat.isGroup ? chat.name : "@" + (other || "Чат");
             const div = document.createElement('div');
             div.className = `nav-item ${currentChatId === chat.id ? 'active' : ''}`;
             div.innerHTML = `<span style="font-size:18px;">${chat.isGroup ? '👥' : '💬'}</span> ${title}`;
@@ -267,6 +293,7 @@ const auth = getAuth(app);
         document.getElementById('chat-title').innerText = title;
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('del-btn').classList.toggle('hidden', id === 'global');
+        
         if (unsubscribe) unsubscribe();
         const q = query(collection(db, "messages"), where("chatId", "==", id));
         unsubscribe = onSnapshot(q, (snap) => {
@@ -289,88 +316,42 @@ const auth = getAuth(app);
         });
     };
 
-// Исправленная функция отправки с таймаутом
-window.sendMsg = async () => {
-    // Ищем инпут именно внутри футера, чтобы не поймать поле из регистрации
-    const input = document.querySelector('#footer #mInput') || document.getElementById('mInput');
-    
-    if (!input) {
-        console.error("КРИТИЧЕСКАЯ ОШИБКА: Поле ввода mInput вообще не найдено в HTML!");
-        return;
-    }
+    // ОТПРАВКА СООБЩЕНИЙ
+    window.sendMsg = async () => {
+        const input = document.querySelector('#footer #mInput') || document.getElementById('mInput');
+        if (!input) return;
 
-    const val = input.value.trim();
-    
-    console.log("--- ПОПЫТКА ОТПРАВКИ ---");
-    console.log("Содержимое инпута:", "'" + val + "'"); // Увидим, есть ли там пробелы
+        const val = input.value.trim();
+        if (!val || !user) return;
 
-    if (!val) {
-        console.warn("Остановка: Текст сообщения пуст.");
-        return;
-    }
-
-    if (!user) {
-        alert("Вы не вошли в аккаунт!");
-        return;
-    }
-
-    try {
-        console.log("Отправляю в Firebase...");
-        input.value = ""; // Очищаем сразу для скорости UI
-        
-        await addDoc(collection(db, "messages"), {
-            chatId: currentChatId || "global",
-            text: val,
-            uid: user.uid,
-            senderName: myName || "Аноним",
-            senderNick: myNick || "user",
-            createdAt: serverTimestamp()
-        });
-        
-        console.log("✅ УШЛО!");
-    } catch (e) {
-        console.error("❌ ОШИБКА FIREBASE:", e.code, e.message);
-        input.value = val; // Возвращаем текст, если не ушло
-        alert("Ошибка: " + e.message);
-    }
-};
-// Исправленный вход (чтобы данные юзера точно были под рукой)
-onAuthStateChanged(auth, async (u) => {
-    console.log("Статус входа изменился:", u ? "Вошел" : "Вышел");
-    if (u) {
-        user = u;
-        document.getElementById('auth-screen').classList.add('hidden');
         try {
-            const snap = await getDoc(doc(db, "users", u.uid));
-            if (snap.exists()) {
-                myNick = snap.data().username;
-                myName = snap.data().name;
-                console.log("Профиль загружен:", myNick);
-                updateUI();
-                loadSidebar();
-                switchChat('global', 'Глобальный чат');
-            } else {
-                console.warn("Документ пользователя не найден в Firestore!");
-                // Если дока нет, создадим временный ник из почты
-                myNick = u.email.split('@')[0];
-                myName = myNick;
-                updateUI();
-            }
-        } catch (err) {
-            console.error("Ошибка загрузки профиля:", err);
+            input.value = "";
+            await addDoc(collection(db, "messages"), {
+                chatId: currentChatId || "global",
+                text: val,
+                uid: user.uid,
+                senderName: myName || "Аноним",
+                senderNick: myNick || "user",
+                createdAt: serverTimestamp()
+            });
+            console.log("✅ Сообщение отправлено");
+        } catch (e) {
+            console.error("Ошибка отправки:", e);
+            input.value = val;
         }
-    } else {
-        document.getElementById('auth-screen').classList.remove('hidden');
-    }
-});
+    };
 
-    // Слушатели событий
-    document.getElementById('sendBtn').onclick = sendMsg;
-    document.getElementById('mInput').onkeydown = (e) => e.key === 'Enter' && sendMsg();
-    document.getElementById('logoutBtn').onclick = () => signOut(auth);
+    // Кнопки и навигация
+    document.getElementById('sendBtn').onclick = window.sendMsg;
+    document.getElementById('mInput').onkeydown = (e) => e.key === 'Enter' && window.sendMsg();
+    document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => location.reload());
     document.getElementById('menuBtn').onclick = () => document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('chat-global').onclick = () => switchChat('global', 'Глобальный чат');
-    
+
+    document.getElementById('folder-all').onclick = () => { currentFolder = "Все"; renderChats(); };
+    document.getElementById('folder-priv').onclick = () => { currentFolder = "Личные"; renderChats(); };
+    document.getElementById('folder-groups').onclick = () => { currentFolder = "Группы"; renderChats(); };
+
     document.getElementById('addChatBtn').onclick = async () => {
         const isGroup = confirm("OK - Группа, Отмена - Личный чат");
         if (isGroup) {
@@ -386,10 +367,6 @@ onAuthStateChanged(auth, async (u) => {
         }
     };
 
-    document.getElementById('folder-all').onclick = () => { currentFolder = "Все"; renderChats(); };
-    document.getElementById('folder-priv').onclick = () => { currentFolder = "Личные"; renderChats(); };
-    document.getElementById('folder-groups').onclick = () => { currentFolder = "Группы"; renderChats(); };
-    
     document.getElementById('del-btn').onclick = async () => {
         if (currentChatId !== 'global' && confirm("Удалить чат?")) {
             await deleteDoc(doc(db, "chats", currentChatId));
@@ -397,9 +374,7 @@ onAuthStateChanged(auth, async (u) => {
         }
     };
 
-    // Делаем функции доступными в консоли для отладки
     window.switchChat = switchChat;
-    
 </script>
 </body>
 </html>
