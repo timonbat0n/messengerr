@@ -53,14 +53,12 @@
         .nav-item:hover { background: var(--glass); }
         .nav-item.active { background: rgba(0, 122, 255, 0.15); border-color: var(--accent); }
 
-        /* Инфо о юзере */
         .user-panel {
             padding: 15px; background: rgba(0,0,0,0.2);
             border-top: 1px solid var(--glass-border); display: flex; align-items: center; gap: 12px;
         }
         .u-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; }
 
-        /* Основной чат */
         #main { flex: 1; display: flex; flex-direction: column; background: radial-gradient(circle at 50% 0%, #1e293b, #0f172a); }
         #header {
             padding: 15px 20px; border-bottom: 1px solid var(--glass-border);
@@ -74,7 +72,6 @@
             max-width: fit-content; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
-        /* Футер */
         #footer { padding: 15px 20px; display: flex; gap: 12px; align-items: center; background: rgba(15, 23, 42, 0.6); }
         .input-wrap {
             flex: 1; background: var(--glass); border-radius: 25px;
@@ -86,7 +83,6 @@
         .btn-action:active { transform: scale(0.9); }
         .btn-del { background: #ef4444; border: none; color: white; padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: bold; }
 
-        /* Авторизация */
         .modal { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; align-items: center; justify-content: center; }
         .card { background: #1e293b; padding: 35px; border-radius: 30px; width: 90%; max-width: 360px; border: 1px solid var(--glass-border); text-align: center; }
         input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass); color: white; box-sizing: border-box; outline: none; }
@@ -170,11 +166,16 @@
     import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, getDoc, setDoc, where, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+    // Твой актуальный конфиг
     const firebaseConfig = {
         apiKey: "AIzaSyBAF8yT2TZtgJCVjZpsIWusH-25jZh2Cts",
         authDomain: "github-messenger-22bd3.firebaseapp.com",
+        databaseURL: "https://github-messenger-22bd3-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "github-messenger-22bd3",
-        appId: "1:367012361010:web:d02a53013d1e2387d25d2b"
+        storageBucket: "github-messenger-22bd3.firebasestorage.app",
+        messagingSenderId: "367012361010",
+        appId: "1:367012361010:web:d02a53013d1e2387d25d2b",
+        measurementId: "G-4JKWDFX9H1"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -186,30 +187,27 @@
 
     const parseMD = (t) => t.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>').replace(/`(.*?)`/g, '<code>$1</code>');
 
-    // Авторизация
     onAuthStateChanged(auth, async (u) => {
         if (u) {
             user = u;
             document.getElementById('auth-screen').classList.add('hidden');
             const snap = await getDoc(doc(db, "users", user.uid));
-            if (snap.exists()) {
+            if (snap.exists() && snap.data().username) {
                 myNick = snap.data().username; myName = snap.data().name;
                 updateUI(); loadSidebar(); switchChat('global', 'Глобальный чат');
             } else { document.getElementById('profile-screen').classList.remove('hidden'); }
         } else { document.getElementById('auth-screen').classList.remove('hidden'); }
     });
 
-function updateUI() {
-    // Если имени нет, ставим "Аноним" и букву "U"
-    const displayId = myName || "Пользователь";
-    document.getElementById('u-name').innerText = displayId;
-    document.getElementById('u-nick').innerText = "@" + (myNick || "user");
-    document.getElementById('u-avatar').innerText = displayId[0].toUpperCase();
-}
+    window.updateUI = () => {
+        const displayId = myName || "Пользователь";
+        document.getElementById('u-name').innerText = displayId;
+        document.getElementById('u-nick').innerText = "@" + (myNick || "user");
+        document.getElementById('u-avatar').innerText = displayId[0] ? displayId[0].toUpperCase() : "?";
+    };
 
-    // Загрузка чатов
     function loadSidebar() {
-        // Запрос: только чаты, где я есть в массиве users
+        if(!myNick) return;
         const q = query(collection(db, "chats"), where("users", "array-contains", myNick.toLowerCase()));
         onSnapshot(q, (snap) => {
             allChats = snap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -232,7 +230,7 @@ function updateUI() {
 
         filtered.forEach(chat => {
             const other = chat.users.find(u => u !== myNick.toLowerCase());
-            const title = chat.isGroup ? chat.name : "@" + other;
+            const title = chat.isGroup ? chat.name : "@" + (other || "Чат");
             const div = document.createElement('div');
             div.className = `nav-item ${currentChatId === chat.id ? 'active' : ''}`;
             div.innerHTML = `<span style="font-size:18px;">${chat.isGroup ? '👥' : '💬'}</span> ${title}`;
@@ -241,14 +239,12 @@ function updateUI() {
         });
     }
 
-    // Сообщения
     window.switchChat = (id, title) => {
         currentChatId = id;
         document.getElementById('chat-title').innerText = title;
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('del-btn').classList.toggle('hidden', id === 'global');
-        document.getElementById('chat-status').innerText = id === 'global' ? 'общий канал' : 'приватный чат';
-
+        
         if (unsubscribe) unsubscribe();
         const q = query(collection(db, "messages"), where("chatId", "==", id));
         unsubscribe = onSnapshot(q, (snap) => {
@@ -273,62 +269,39 @@ function updateUI() {
         });
     };
 
-    // Создание чата/группы
     window.createNewChat = async () => {
         const isGroup = confirm("Создать ГРУППУ (ОК) или ЛИЧНЫЙ ЧАТ (Отмена)?");
         if (isGroup) {
             const name = prompt("Название группы:");
-            const members = prompt("Ники участников через запятую (напр: vika, timon):");
+            const members = prompt("Ники через запятую (напр: vika, ivan):");
             if (!name || !members) return;
             const users = members.split(',').map(m => m.trim().toLowerCase());
             if (!users.includes(myNick.toLowerCase())) users.push(myNick.toLowerCase());
             await addDoc(collection(db, "chats"), { name, users, isGroup: true, owner: myNick, createdAt: serverTimestamp() });
         } else {
-            const target = prompt("Введите ник пользователя:");
+            const target = prompt("Ник пользователя:");
             if (!target || target.toLowerCase() === myNick.toLowerCase()) return;
             await addDoc(collection(db, "chats"), { users: [myNick.toLowerCase(), target.toLowerCase()], isGroup: false, createdAt: serverTimestamp() });
         }
     };
 
-window.sendMsg = async () => {
-    const input = document.getElementById('mInput');
-    const val = input.value.trim();
+    window.sendMsg = async () => {
+        const input = document.getElementById('mInput');
+        const val = input.value.trim();
+        if (!val || !user || !currentChatId) return;
 
-    // Проверка перед отправкой
-    if (!val) return; 
-    if (!user) {
-        console.error("Ошибка: Пользователь не авторизован!");
-        alert("Войдите в аккаунт!");
-        return;
-    }
-    if (!currentChatId) {
-        console.error("Ошибка: Чат не выбран!");
-        return;
-    }
-
-    console.log("Отправка в чат:", currentChatId, "от:", myNick);
-
-    try {
-        // Очищаем поле сразу для скорости UI
-        input.value = "";
-        
-        await addDoc(collection(db, "messages"), {
-            chatId: currentChatId,
-            text: val,
-            uid: user.uid,
-            senderName: myName,
-            senderNick: myNick,
-            createdAt: serverTimestamp()
-        });
-        
-        console.log("✅ Сообщение успешно доставлено в Firestore!");
-    } catch (error) {
-        console.error("❌ ОШИБКА ОТПРАВКИ:", error);
-        // Возвращаем текст в поле, если не отправилось
-        input.value = val; 
-        alert("Ошибка при отправке: " + error.message);
-    }
-};
+        try {
+            input.value = "";
+            await addDoc(collection(db, "messages"), {
+                chatId: currentChatId, text: val, uid: user.uid, 
+                senderName: myName, senderNick: myNick, createdAt: serverTimestamp()
+            });
+        } catch (e) {
+            console.error(e);
+            input.value = val;
+            alert("Ошибка: " + e.message);
+        }
+    };
 
     window.deleteCurrentChat = async () => {
         if (currentChatId !== 'global' && confirm("Удалить этот чат?")) {
