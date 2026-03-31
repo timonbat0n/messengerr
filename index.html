@@ -72,21 +72,74 @@
             max-width: fit-content; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
-        #footer { padding: 15px 20px; display: flex; gap: 12px; align-items: center; background: rgba(15, 23, 42, 0.6); }
-        .input-wrap {
-            flex: 1; background: var(--glass); border-radius: 25px;
-            padding: 2px 20px; border: 1px solid var(--glass-border); display: flex;
-        }
-        #mInput { flex: 1; background: none; border: none; outline: none; color: #fff; padding: 12px 0; font-size: 16px; }
+       #footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.05); /* Прозрачный белый */
+    backdrop-filter: blur(15px); /* Размытие фона */
+    -webkit-backdrop-filter: blur(15px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-sizing: border-box;
+    z-index: 1000; /* Поверх всего */
+}
 
-        .btn-action { background: var(--accent); border: none; color: white; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-        .btn-action:active { transform: scale(0.9); }
-        .btn-del { background: #ef4444; border: none; color: white; padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: bold; }
+#mInput {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 12px 20px;
+    color: #fff;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s ease;
+}
 
-        .modal { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; align-items: center; justify-content: center; }
-        .card { background: #1e293b; padding: 35px; border-radius: 30px; width: 90%; max-width: 360px; border: 1px solid var(--glass-border); text-align: center; }
-        input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass); color: white; box-sizing: border-box; outline: none; }
-        .hidden { display: none !important; }
+#mInput:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #0088cc; /* Цвет Telegram-стиля */
+    box-shadow: 0 0 10px rgba(0, 136, 204, 0.3);
+}
+
+#mInput::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+#sendBtn {
+    background: #0088cc;
+    color: white;
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, background 0.3s ease;
+    flex-shrink: 0;
+}
+
+#sendBtn:hover {
+    background: #00aaff;
+    transform: scale(1.05);
+}
+
+#sendBtn:active {
+    transform: scale(0.95);
+}
+
+/* Важно: отступ для списка сообщений, чтобы нижние сообщения не прятались за футером */
+#messages {
+    padding-bottom: 80px !important;
+}
     </style>
 </head>
 <body>
