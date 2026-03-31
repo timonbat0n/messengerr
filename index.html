@@ -199,11 +199,13 @@
         } else { document.getElementById('auth-screen').classList.remove('hidden'); }
     });
 
-    function updateUI() {
-        document.getElementById('u-name').innerText = myName;
-        document.getElementById('u-nick').innerText = "@" + myNick;
-        document.getElementById('u-avatar').innerText = myName[0].toUpperCase();
-    }
+function updateUI() {
+    // Если имени нет, ставим "Аноним" и букву "U"
+    const displayId = myName || "Пользователь";
+    document.getElementById('u-name').innerText = displayId;
+    document.getElementById('u-nick').innerText = "@" + (myNick || "user");
+    document.getElementById('u-avatar').innerText = displayId[0].toUpperCase();
+}
 
     // Загрузка чатов
     function loadSidebar() {
