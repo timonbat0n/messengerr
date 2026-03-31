@@ -197,6 +197,8 @@
     </div>
     <div id="active-list" style="flex:1; overflow-y:auto;">
         <div class="nav-item active" id="chat-global"><span>🌐</span> Глобальный чат</div>
+        <div class="nav-item" id="chat-saved" style="margin-top: 10px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px;"><span>🔖</span> <b>Избранное</b>
+</div>
         <div id="chat-items-container"></div>
     </div>
     <div class="user-panel">
@@ -529,6 +531,34 @@ const renderChats = () => {
             await deleteDoc(doc(db, "chats", currentChatId)); 
             switchChat('global', 'Глобальный чат'); 
         } 
+    };
+    document.getElementById('chat-saved').onclick = async () => {
+        const lowerMyNick = myNick.toLowerCase();
+        
+        // Ищем чат, где в массиве users только ТЫ один
+        let savedChat = allChats.find(c => 
+            !c.isGroup && 
+            c.users.length === 1 && 
+            c.users[0] === lowerMyNick
+        );
+
+        if (savedChat) {
+            switchChat(savedChat.id, "Избранное");
+        } else {
+            // Если такого чата еще нет (первый раз нажали), создаем его
+            try {
+                const newChatRef = await addDoc(collection(db, "chats"), {
+                    name: "Избранное",
+                    users: [lowerMyNick],
+                    isGroup: false,
+                    isSaved: true, // Доп. флаг для удобства
+                    createdAt: serverTimestamp()
+                });
+                switchChat(newChatRef.id, "Избранное");
+            } catch (e) {
+                console.error("Ошибка при создании Избранного:", e);
+            }
+        }
     };
     
 </script>
