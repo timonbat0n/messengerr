@@ -118,7 +118,6 @@
                 <span onclick="document.getElementById('sidebar').classList.toggle('open')" style="font-size:24px; cursor:pointer;">☰</span>
                 <div>
                     <h3 id="chat-title" style="margin:0; font-size:17px;">LiveMes.</h3>
-                    <span style="font-size:10px; opacity:0.5;">⏲ автоудаление выкл.</span>
                 </div>
             </div>
             <button id="clearBtn" class="hidden" style="background:none; border:none; font-size:20px;">🧹</button>
@@ -149,22 +148,144 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, getDoc, setDoc, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBAF8yT2TZtgJCVjZpsIWusH-25jZh2Cts",
         authDomain: "github-messenger-22bd3.firebaseapp.com",
         projectId: "github-messenger-22bd3",
+        storageBucket: "github-messenger-22bd3.firebasestorage.app",
+        messagingSenderId: "367012361010",
         appId: "1:367012361010:web:d02a53013d1e2387d25d2b"
     };
 
     const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
     const auth = getAuth(app);
 
-    onAuthStateChanged(auth, (u) => {
-        if (u) console.log("FIREBASE OK: Юзер зашел как", u.email);
-        else console.log("FIREBASE OK: Жду логина...");
+    let user = null, myNick = "user", myName = "Аноним", currentChatId = "global", unsubscribe = null;
+
+    // Markdown
+    const parseMD = (t) => t.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>').replace(/`(.*?)`/g, '<code>$1</code>');
+
+    // Главный вход
+    onAuthStateChanged(auth, async (u) => {
+        if (u) {
+            user = u;
+            console.log("Вход выполнен:", user.email);
+            document.getElementById('auth-screen').classList.add('hidden');
+            
+            const snap = await getDoc(doc(db, "users", user.uid));
+            if (snap.exists()) {
+                myNick = snap.data().username || "user";
+                myName = snap.data().name || "User";
+                switchChat('global', 'Глобальный чат');
+            } else {
+                document.getElementById('profile-screen').classList.remove('hidden');
+            }
+        } else {
+            document.getElementById('auth-screen').classList.remove('hidden');
+        }
     });
+
+    // Функция переключения чата
+    window.switchChat = (id, title) => {
+        currentChatId = id;
+        document.getElementById('chat-title').innerText = title;
+        
+        // Визуальное выделение в меню
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        const activeItem = document.getElementById('chat-' + id);
+        if (activeItem) activeItem.classList.add('active');
+
+        if (unsubscribe) unsubscribe();
+
+        const q = query(collection(db, "messages"), where("chatId", "==", id));
+        unsubscribe = onSnapshot(q, (snap) => {
+            const box = document.getElementById('messages');
+            if (!box) return;
+
+            let msgs = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            msgs.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+
+            box.innerHTML = "";
+            msgs.forEach(m => {
+                const isMe = m.uid === user?.uid;
+                const msgHTML = `
+                <div style="display:flex; flex-direction:column; align-self:${isMe ? 'flex-end' : 'flex-start'}; max-width:85%; margin-bottom:8px;">
+                    <span style="font-size:10px; opacity:0.5; margin: 0 8px; text-align:${isMe ? 'right' : 'left'}">
+                        ${m.senderNick === 'timon' ? '⭐ ' : ''}${m.senderName}
+                    </span>
+                    <div class="bubble" style="background:${isMe ? 'var(--accent)' : 'var(--bubble-other)'}; 
+                         color:${isMe ? '#fff' : 'inherit'}; padding:10px 14px; border-radius:18px; margin-top:2px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                        ${parseMD(m.text || "")}
+                    </div>
+                </div>`;
+                box.insertAdjacentHTML('beforeend', msgHTML);
+            });
+            box.scrollTop = box.scrollHeight;
+        }, (err) => console.error("Ошибка Firestore:", err));
+    };
+
+    // Функция отправки
+    window.sendMsg = async (opts = {}) => {
+        const input = document.getElementById('mInput');
+        const val = input.value.trim();
+        if (!val || !user) return;
+
+        input.value = "";
+        try {
+            await addDoc(collection(db, "messages"), {
+                chatId: currentChatId,
+                text: val,
+                uid: user.uid,
+                senderName: myName,
+                senderNick: myNick,
+                createdAt: serverTimestamp(),
+                silent: opts.silent || false
+            });
+            console.log("Сообщение отправлено!");
+        } catch (e) {
+            console.error("Ошибка отправки:", e);
+            alert("Не удалось отправить: " + e.message);
+        }
+    };
+
+    // События кнопок
+    document.getElementById('loginBtn').onclick = () => {
+        const e = document.getElementById('email').value;
+        const p = document.getElementById('pass').value;
+        signInWithEmailAndPassword(auth, e, p).catch(err => alert("Ошибка: " + err.message));
+    };
+
+    document.getElementById('saveProfBtn').onclick = async () => {
+        const n = document.getElementById('pName').value;
+        const nick = document.getElementById('pNick').value.toLowerCase();
+        if (n && nick) {
+            await setDoc(doc(db, "users", user.uid), { name: n, username: nick });
+            location.reload();
+        }
+    };
+
+    document.getElementById('sendBtn').onclick = () => sendMsg();
+    document.getElementById('mInput').onkeypress = (e) => { if(e.key === 'Enter') sendMsg(); };
+
+    // Контекстное меню (Long Press)
+    let pressTimer;
+    const sBtn = document.getElementById('sendBtn');
+    sBtn.onmousedown = sBtn.ontouchstart = () => {
+        pressTimer = setTimeout(() => {
+            document.getElementById('send-ctx-menu').style.display = 'flex';
+        }, 600);
+    };
+    sBtn.onmouseup = sBtn.ontouchend = () => clearTimeout(pressTimer);
+
+    window.handleAction = (type) => {
+        document.getElementById('send-ctx-menu').style.display = 'none';
+        if (type === 'silent') sendMsg({ silent: true });
+    };
+
 </script>
 </body>
 </html>
