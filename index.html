@@ -280,17 +280,31 @@
         });
     };
 
-    const sendMsg = async () => {
-        const input = document.getElementById('mInput');
-        const val = input.value.trim();
-        if (!val || !user || !currentChatId) return;
+ window.sendMsg = async () => {
+    const input = document.getElementById('mInput');
+    const val = input.value.trim();
+    
+    console.log("Пытаюсь отправить:", { val, userId: user?.uid, chatId: currentChatId });
+
+    if (!val) return;
+    if (!user) return alert("Ошибка: Вы не авторизованы!");
+
+    try {
+        const docRef = await addDoc(collection(db, "messages"), {
+            chatId: currentChatId,
+            text: val,
+            uid: user.uid,
+            senderName: myName || "Аноним", // Фолбэк, если профиль не прогрузился
+            senderNick: myNick || "user",
+            createdAt: serverTimestamp()
+        });
+        console.log("✅ Успех! ID сообщения:", docRef.id);
         input.value = "";
-        try {
-            await addDoc(collection(db, "messages"), {
-                chatId: currentChatId, text: val, uid: user.uid, senderName: myName, senderNick: myNick, createdAt: serverTimestamp()
-            });
-        } catch (e) { input.value = val; console.error(e); }
-    };
+    } catch (e) {
+        console.error("❌ Ошибка при отправке:", e.code, e.message);
+        alert("Ошибка отправки: " + e.message);
+    }
+};
 
     // Слушатели событий
     document.getElementById('sendBtn').onclick = sendMsg;
@@ -327,6 +341,7 @@
 
     // Делаем функции доступными в консоли для отладки
     window.switchChat = switchChat;
+    
 </script>
 </body>
 </html>
