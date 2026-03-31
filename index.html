@@ -161,6 +161,20 @@
     ::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
 
     .hidden { display: none !important; }
+
+    /* Подсветка активной папки сверху */
+.folder-tab.active {
+    background: var(--accent) !important;
+    opacity: 1 !important;
+    color: white;
+}
+
+/* Подсветка выбранного чата в списке слева */
+.nav-item.active {
+    background: rgba(0, 122, 255, 0.15) !important;
+    border-left: 3px solid var(--accent) !important;
+    color: #fff;
+}
 </style>
 </head>
 <body>
