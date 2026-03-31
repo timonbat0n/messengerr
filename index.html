@@ -91,92 +91,73 @@
 </head>
 <body>
 
-  <div id="auth-screen" class="modal">
+<div id="auth-screen" class="modal">
     <div class="card">
         <h1 id="auth-title" style="color:var(--accent); margin-bottom:25px;">LiveMes.</h1>
-        
         <input type="email" id="email" placeholder="Email">
         <input type="password" id="pass" placeholder="Пароль">
-        
         <div id="reg-fields" class="hidden">
             <input type="text" id="reg-name" placeholder="Ваше имя">
             <input type="text" id="reg-nick" placeholder="Ваш @ник">
         </div>
-
-        <button id="auth-btn" onclick="handleAuth()" style="width:100%; padding:14px; background:var(--accent); border:none; border-radius:12px; color:white; font-weight:bold; cursor:pointer; margin-top:10px;">Войти</button>
-        
-        <p id="auth-toggle" style="font-size:13px; opacity:0.7; margin-top:20px; cursor:pointer;" onclick="toggleAuthMode()">
+        <button id="auth-btn" style="width:100%; padding:14px; background:var(--accent); border:none; border-radius:12px; color:white; font-weight:bold; cursor:pointer; margin-top:10px;">Войти</button>
+        <p id="auth-toggle" style="font-size:13px; opacity:0.7; margin-top:20px; cursor:pointer;">
             Нет аккаунта? <b>Зарегистрироваться</b>
         </p>
     </div>
 </div>
 
-    <div id="profile-screen" class="modal hidden">
-        <div class="card">
-            <h2>Ваш профиль</h2>
-            <input type="text" id="pName" placeholder="Как вас зовут?">
-            <input type="text" id="pNick" placeholder="Ваш уникальный @ник">
-            <button onclick="saveProfile()" style="width:100%; padding:14px; background:var(--accent); border:none; border-radius:12px; color:white; font-weight:bold; cursor:pointer;">Сохранить и войти</button>
-        </div>
+<div id="sidebar">
+    <div style="padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin:0; font-size: 24px; letter-spacing: -1px;">Чаты</h2>
+        <button class="btn-action" id="addChatBtn">+</button>
     </div>
-
-    <div id="sidebar">
-        <div style="padding: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="margin:0; font-size: 24px; letter-spacing: -1px;">Чаты</h2>
-            <button class="btn-action" onclick="createNewChat()">+</button>
-        </div>
-
-        <div class="folder-tabs">
-            <div class="folder-tab active" onclick="changeFolder('Все', this)">Все</div>
-            <div class="folder-tab" onclick="changeFolder('Личные', this)">Личные</div>
-            <div class="folder-tab" onclick="changeFolder('Группы', this)">Группы</div>
-        </div>
-
-        <div id="active-list">
-            <div class="nav-item active" id="chat-global" onclick="switchChat('global', 'Глобальный чат')">
-                <span style="font-size:18px;">🌐</span> Глобальный чат
-            </div>
-            <div id="chat-items-container"></div>
-        </div>
-
-        <div class="user-panel">
-            <div class="u-avatar" id="u-avatar">?</div>
-            <div style="flex:1">
-                <div id="u-name" style="font-weight:bold; font-size:14px;">Загрузка...</div>
-                <div id="u-nick" style="font-size:11px; opacity:0.5;">@nick</div>
-            </div>
-            <button onclick="auth.signOut()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:12px;">Выход</button>
-        </div>
+    <div class="folder-tabs">
+        <div class="folder-tab active" id="folder-all">Все</div>
+        <div class="folder-tab" id="folder-priv">Личные</div>
+        <div class="folder-tab" id="folder-groups">Группы</div>
     </div>
-
-    <div id="main">
-        <div id="header">
-            <div style="display:flex; align-items:center; gap:15px;">
-                <span onclick="document.getElementById('sidebar').classList.toggle('open')" style="font-size:24px; cursor:pointer;">☰</span>
-                <div>
-                    <h3 id="chat-title" style="margin:0; font-size:18px;">LiveMes. Elite</h3>
-                    <div id="chat-status" style="font-size:10px; opacity:0.4;">выберите диалог</div>
-                </div>
-            </div>
-            <button id="del-btn" class="btn-del hidden" onclick="deleteCurrentChat()">Удалить</button>
+    <div id="active-list">
+        <div class="nav-item active" id="chat-global">
+            <span style="font-size:18px;">🌐</span> Глобальный чат
         </div>
-
-        <div id="messages"></div>
-
-        <div id="footer">
-            <div class="input-wrap">
-                <input type="text" id="mInput" placeholder="Сообщение..." autocomplete="off">
-            </div>
-            <button id="sendBtn" class="btn-action">➔</button>
-        </div>
+        <div id="chat-items-container"></div>
     </div>
+    <div class="user-panel">
+        <div class="u-avatar" id="u-avatar">?</div>
+        <div style="flex:1">
+            <div id="u-name" style="font-weight:bold; font-size:14px;">Загрузка...</div>
+            <div id="u-nick" style="font-size:11px; opacity:0.5;">@nick</div>
+        </div>
+        <button id="logoutBtn" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:12px;">Выход</button>
+    </div>
+</div>
+
+<div id="main">
+    <div id="header">
+        <div style="display:flex; align-items:center; gap:15px;">
+            <span id="menuBtn" style="font-size:24px; cursor:pointer;">☰</span>
+            <div>
+                <h3 id="chat-title" style="margin:0; font-size:18px;">LiveMes. Elite</h3>
+                <div id="chat-status" style="font-size:10px; opacity:0.4;">выберите диалог</div>
+            </div>
+        </div>
+        <button id="del-btn" class="btn-del hidden">Удалить</button>
+    </div>
+    <div id="messages"></div>
+    <div id="footer">
+        <div class="input-wrap">
+            <input type="text" id="mInput" placeholder="Сообщение..." autocomplete="off">
+        </div>
+        <button id="sendBtn" class="btn-action">➔</button>
+    </div>
+</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, getDoc, setDoc, where, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, getDoc, setDoc, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // Твой актуальный конфиг
     const firebaseConfig = {
         apiKey: "AIzaSyBAF8yT2TZtgJCVjZpsIWusH-25jZh2Cts",
         authDomain: "github-messenger-22bd3.firebaseapp.com",
@@ -184,8 +165,7 @@
         projectId: "github-messenger-22bd3",
         storageBucket: "github-messenger-22bd3.firebasestorage.app",
         messagingSenderId: "367012361010",
-        appId: "1:367012361010:web:d02a53013d1e2387d25d2b",
-        measurementId: "G-4JKWDFX9H1"
+        appId: "1:367012361010:web:d02a53013d1e2387d25d2b"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -193,45 +173,69 @@
     const auth = getAuth(app);
 
     let user = null, myNick = "", myName = "", currentChatId = "global", unsubscribe = null, currentFolder = "Все";
-    let allChats = [];
+    let allChats = [], isRegMode = false;
 
     const parseMD = (t) => t.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>').replace(/`(.*?)`/g, '<code>$1</code>');
 
+    // Авторизация
     onAuthStateChanged(auth, async (u) => {
         if (u) {
             user = u;
-            document.getElementById('auth-screen').classList.add('hidden');
             const snap = await getDoc(doc(db, "users", user.uid));
-            if (snap.exists() && snap.data().username) {
+            if (snap.exists()) {
                 myNick = snap.data().username; myName = snap.data().name;
+                document.getElementById('auth-screen').classList.add('hidden');
                 updateUI(); loadSidebar(); switchChat('global', 'Глобальный чат');
-            } else { document.getElementById('profile-screen').classList.remove('hidden'); }
-        } else { document.getElementById('auth-screen').classList.remove('hidden'); }
+            }
+        } else {
+            document.getElementById('auth-screen').classList.remove('hidden');
+        }
     });
 
-    window.updateUI = () => {
-        const displayId = myName || "Пользователь";
-        document.getElementById('u-name').innerText = displayId;
+    const updateUI = () => {
+        document.getElementById('u-name').innerText = myName || "Пользователь";
         document.getElementById('u-nick').innerText = "@" + (myNick || "user");
-        document.getElementById('u-avatar').innerText = displayId[0] ? displayId[0].toUpperCase() : "?";
+        document.getElementById('u-avatar').innerText = (myName ? myName[0] : "?").toUpperCase();
     };
 
-    function loadSidebar() {
-        if(!myNick) return;
+    // Переключатель входа/регистрации
+    document.getElementById('auth-toggle').onclick = () => {
+        isRegMode = !isRegMode;
+        document.getElementById('auth-title').innerText = isRegMode ? "Регистрация" : "LiveMes.";
+        document.getElementById('auth-btn').innerText = isRegMode ? "Создать аккаунт" : "Войти";
+        document.getElementById('reg-fields').classList.toggle('hidden', !isRegMode);
+        document.getElementById('auth-toggle').innerHTML = isRegMode ? "Уже есть аккаунт? <b>Войти</b>" : "Нет аккаунта? <b>Зарегистрироваться</b>";
+    };
+
+    document.getElementById('auth-btn').onclick = async () => {
+        const mail = document.getElementById('email').value;
+        const pass = document.getElementById('pass').value;
+        if (!mail || !pass) return alert("Заполните поля!");
+
+        try {
+            if (isRegMode) {
+                const name = document.getElementById('reg-name').value;
+                const nick = document.getElementById('reg-nick').value.trim().toLowerCase();
+                if (!name || !nick) return alert("Введите имя и ник!");
+                const res = await createUserWithEmailAndPassword(auth, mail, pass);
+                await setDoc(doc(db, "users", res.user.uid), { name, username: nick });
+                location.reload();
+            } else {
+                await signInWithEmailAndPassword(auth, mail, pass);
+            }
+        } catch (e) { alert(e.message); }
+    };
+
+    // Чаты
+    const loadSidebar = () => {
         const q = query(collection(db, "chats"), where("users", "array-contains", myNick.toLowerCase()));
         onSnapshot(q, (snap) => {
             allChats = snap.docs.map(d => ({id: d.id, ...d.data()}));
             renderChats();
         });
-    }
-
-    window.changeFolder = (f, el) => {
-        currentFolder = f;
-        document.querySelectorAll('.folder-tab').forEach(t => t.classList.remove('active'));
-        el.classList.add('active'); renderChats();
     };
 
-    function renderChats() {
+    const renderChats = () => {
         const container = document.getElementById('chat-items-container');
         container.innerHTML = "";
         let filtered = allChats;
@@ -240,37 +244,34 @@
 
         filtered.forEach(chat => {
             const other = chat.users.find(u => u !== myNick.toLowerCase());
-            const title = chat.isGroup ? chat.name : "@" + (other || "Чат");
+            const title = chat.isGroup ? chat.name : "@" + other;
             const div = document.createElement('div');
             div.className = `nav-item ${currentChatId === chat.id ? 'active' : ''}`;
             div.innerHTML = `<span style="font-size:18px;">${chat.isGroup ? '👥' : '💬'}</span> ${title}`;
             div.onclick = () => switchChat(chat.id, title);
             container.appendChild(div);
         });
-    }
+    };
 
-    window.switchChat = (id, title) => {
+    const switchChat = (id, title) => {
         currentChatId = id;
         document.getElementById('chat-title').innerText = title;
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('del-btn').classList.toggle('hidden', id === 'global');
-        
         if (unsubscribe) unsubscribe();
         const q = query(collection(db, "messages"), where("chatId", "==", id));
         unsubscribe = onSnapshot(q, (snap) => {
             const box = document.getElementById('messages');
-            let msgs = snap.docs.map(d => ({id: d.id, ...d.data()}));
-            msgs.sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+            let msgs = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
             box.innerHTML = "";
             msgs.forEach(m => {
-                const isMe = m.uid === user.uid;
+                const isMe = m.uid === user?.uid;
                 box.innerHTML += `
                     <div style="align-self:${isMe?'flex-end':'flex-start'}; max-width:85%;">
                         <div style="font-size:10px; opacity:0.4; margin-bottom:2px; text-align:${isMe?'right':'left'}">
                             ${m.senderNick === 'timon' ? '⭐ ' : ''}${m.senderName}
                         </div>
-                        <div class="bubble" style="background:${isMe?'var(--my-bubble)':'var(--glass)'}; color:#fff; 
-                             border-radius:${isMe?'18px 18px 4px 18px':'18px 18px 18px 4px'};">
+                        <div class="bubble" style="background:${isMe?'var(--my-bubble)':'var(--glass)'}; color:#fff; border-radius:${isMe?'18px 18px 4px 18px':'18px 18px 18px 4px'};">
                             ${parseMD(m.text || "")}
                         </div>
                     </div>`;
@@ -279,149 +280,53 @@
         });
     };
 
-    window.createNewChat = async () => {
-        const isGroup = confirm("Создать ГРУППУ (ОК) или ЛИЧНЫЙ ЧАТ (Отмена)?");
-        if (isGroup) {
-            const name = prompt("Название группы:");
-            const members = prompt("Ники через запятую (напр: vika, ivan):");
-            if (!name || !members) return;
-            const users = members.split(',').map(m => m.trim().toLowerCase());
-            if (!users.includes(myNick.toLowerCase())) users.push(myNick.toLowerCase());
-            await addDoc(collection(db, "chats"), { name, users, isGroup: true, owner: myNick, createdAt: serverTimestamp() });
-        } else {
-            const target = prompt("Ник пользователя:");
-            if (!target || target.toLowerCase() === myNick.toLowerCase()) return;
-            await addDoc(collection(db, "chats"), { users: [myNick.toLowerCase(), target.toLowerCase()], isGroup: false, createdAt: serverTimestamp() });
-        }
-    };
-
-    window.sendMsg = async () => {
+    const sendMsg = async () => {
         const input = document.getElementById('mInput');
         const val = input.value.trim();
         if (!val || !user || !currentChatId) return;
-
+        input.value = "";
         try {
-            input.value = "";
             await addDoc(collection(db, "messages"), {
-                chatId: currentChatId, text: val, uid: user.uid, 
-                senderName: myName, senderNick: myNick, createdAt: serverTimestamp()
+                chatId: currentChatId, text: val, uid: user.uid, senderName: myName, senderNick: myNick, createdAt: serverTimestamp()
             });
-        } catch (e) {
-            console.error(e);
-            input.value = val;
-            alert("Ошибка: " + e.message);
+        } catch (e) { input.value = val; console.error(e); }
+    };
+
+    // Слушатели событий
+    document.getElementById('sendBtn').onclick = sendMsg;
+    document.getElementById('mInput').onkeydown = (e) => e.key === 'Enter' && sendMsg();
+    document.getElementById('logoutBtn').onclick = () => signOut(auth);
+    document.getElementById('menuBtn').onclick = () => document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('chat-global').onclick = () => switchChat('global', 'Глобальный чат');
+    
+    document.getElementById('addChatBtn').onclick = async () => {
+        const isGroup = confirm("OK - Группа, Отмена - Личный чат");
+        if (isGroup) {
+            const name = prompt("Название группы:");
+            const members = prompt("Ники через запятую:");
+            if (!name || !members) return;
+            const users = members.split(',').map(m => m.trim().toLowerCase());
+            if (!users.includes(myNick.toLowerCase())) users.push(myNick.toLowerCase());
+            await addDoc(collection(db, "chats"), { name, users, isGroup: true, owner: myNick });
+        } else {
+            const target = prompt("Ник пользователя:");
+            if (target) await addDoc(collection(db, "chats"), { users: [myNick.toLowerCase(), target.toLowerCase()], isGroup: false });
         }
     };
 
-    window.deleteCurrentChat = async () => {
-        if (currentChatId !== 'global' && confirm("Удалить этот чат?")) {
+    document.getElementById('folder-all').onclick = () => { currentFolder = "Все"; renderChats(); };
+    document.getElementById('folder-priv').onclick = () => { currentFolder = "Личные"; renderChats(); };
+    document.getElementById('folder-groups').onclick = () => { currentFolder = "Группы"; renderChats(); };
+    
+    document.getElementById('del-btn').onclick = async () => {
+        if (currentChatId !== 'global' && confirm("Удалить чат?")) {
             await deleteDoc(doc(db, "chats", currentChatId));
             switchChat('global', 'Глобальный чат');
         }
     };
-// Добавь createUserWithEmailAndPassword в импорт из firebase-auth.js
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-let isRegMode = false;
-
-// Переключение между Входом и Регистрацией
-window.toggleAuthMode = () => {
-    isRegMode = !isRegMode;
-    document.getElementById('auth-title').innerText = isRegMode ? "Регистрация" : "LiveMes.";
-    document.getElementById('auth-btn').innerText = isRegMode ? "Создать аккаунт" : "Войти";
-    document.getElementById('auth-toggle').innerHTML = isRegMode ? 
-        "Уже есть аккаунт? <b>Войти</b>" : 
-        "Нет аккаунта? <b>Зарегистрироваться</b>";
-    document.getElementById('reg-fields').classList.toggle('hidden', !isRegMode);
-};
-
-// Главная функция авторизации
-window.handleAuth = async () => {
-    const mail = document.getElementById('email').value;
-    const password = document.getElementById('pass').value;
-
-    if (!mail || !password) return alert("Заполните почту и пароль");
-
-    try {
-        if (isRegMode) {
-            // РЕГИСТРАЦИЯ
-            const name = document.getElementById('reg-name').value;
-            const nick = document.getElementById('reg-nick').value.trim().toLowerCase();
-
-            if (!name || !nick) return alert("Заполните имя и ник");
-
-            const res = await createUserWithEmailAndPassword(auth, mail, password);
-            
-            // Сразу создаем профиль в Firestore
-            await setDoc(doc(db, "users", res.user.uid), {
-                name: name,
-                username: nick
-            });
-            
-            console.log("Регистрация успешна!");
-            location.reload(); // Перезагружаем, чтобы подтянулись данные
-        } else {
-            // ВХОД
-            await signInWithEmailAndPassword(auth, mail, password);
-        }
-    } catch (e) {
-        console.error(e);
-        alert("Ошибка: " + e.message);
-    }
-};
-    // Ждем, пока DOM полностью загрузится
-document.addEventListener('DOMContentLoaded', () => {
-    const sBtn = document.getElementById('sendBtn');
-    const input = document.getElementById('mInput');
-
-    if (sBtn) {
-        sBtn.addEventListener('click', () => {
-            console.log(">>> Клик по кнопке зафиксирован!");
-            window.sendMsg();
-        });
-    } else {
-        console.error("!!! Кнопка sendBtn не найдена в HTML");
-    }
-
-    if (input) {
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                console.log(">>> Нажат Enter!");
-                window.sendMsg();
-            }
-        });
-    }
-});
-
-// На всякий случай дублируем в window, чтобы onclick в HTML (если он остался) тоже видел функцию
-window.sendMsg = async () => {
-    console.log("Функция sendMsg вызвана. Текущий статус:", { 
-        user: user ? "Авторизован" : "НЕТ ЮЗЕРА", 
-        chat: currentChatId,
-        text: document.getElementById('mInput').value 
-    });
-
-    const input = document.getElementById('mInput');
-    const val = input.value.trim();
-
-    if (!val || !user || !currentChatId) return;
-
-    try {
-        input.value = "";
-        await addDoc(collection(db, "messages"), {
-            chatId: currentChatId,
-            text: val,
-            uid: user.uid,
-            senderName: myName,
-            senderNick: myNick,
-            createdAt: serverTimestamp()
-        });
-        console.log("✅ Сообщение ушло в Firebase!");
-    } catch (e) {
-        console.error("❌ Ошибка Firestore:", e);
-        input.value = val;
-    }
-};
+    // Делаем функции доступными в консоли для отладки
+    window.switchChat = switchChat;
 </script>
 </body>
 </html>
