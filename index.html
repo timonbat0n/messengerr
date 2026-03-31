@@ -305,19 +305,35 @@
     onAuthStateChanged(auth, async (u) => {
         if (u) {
             user = u; 
-            document.getElementById('auth-screen').classList.add('hidden');
-            const snap = await getDoc(doc(db, "users", u.uid));
-            if (snap.exists()) {
-                const d = snap.data(); 
-                myNick = d.username; 
-                myName = d.name;
-                updateUI(d); 
-                loadSidebar(); 
-                switchChat('global', 'Глобальный чат');
-            }
+           document.getElementById('auth-btn').onclick = async () => {
+    const emailField = document.getElementById('email');
+    const passField = document.getElementById('pass');
+    
+    // Проверка на наличие элементов (чтобы скрипт не падал)
+    if (!emailField || !passField) {
+        console.error("Поля ввода не найдены!");
+        return;
+    }
+
+    const m = emailField.value.trim();
+    const p = passField.value.trim();
+
+    try {
+        if (isRegMode) {
+            const res = await createUserWithEmailAndPassword(auth, m, p);
+            await setDoc(doc(db, "users", res.user.uid), { 
+                name: document.getElementById('reg-name').value, 
+                username: document.getElementById('reg-nick').value.trim().toLowerCase(), 
+                avatar: "" 
+            });
         } else {
-            document.getElementById('auth-screen').classList.remove('hidden');
+            await signInWithEmailAndPassword(auth, m, p);
         }
+    } catch (e) {
+        console.error("Ошибка авторизации:", e.code);
+        alert("Ошибка: " + e.code); // Это покажет, если пароль неверный или юзера нет
+    }
+};
     });
 
     // --- Логика сообщений ---
