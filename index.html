@@ -328,7 +328,31 @@ const switchChat = async (id, title) => {
         headerTitle.innerText = title;
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('del-btn').classList.toggle('hidden', id === 'global');
+   // 1. ОСТАНАВЛИВАЕМ старую подписку, если она была
+        if (unsubMsgs) {
+            unsubMsgs();
+            unsubMsgs = null; 
+        }
 
+        currentChatId = id;
+        const box = document.getElementById('messages');
+        
+        // 2. ОЧИЩАЕМ экран немедленно, чтобы не видеть хвосты старого чата
+        box.innerHTML = `<div style="text-align:center; opacity:0.5; margin-top:20px;">Загрузка сообщений...</div>`;
+      // 3. ЗАПУСКАЕМ новую подписку
+        unsubMsgs = onSnapshot(query(collection(db, "messages"), where("chatId", "==", id)), (snap) => {
+            // Снова чистим перед рендером новых данных из Snap
+            box.innerHTML = ""; 
+            
+            let msgs = snap.docs.map(d => ({id: d.id, ...d.data()}))
+                           .sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+            
+            if (msgs.length === 0) {
+                box.innerHTML = `<div style="text-align:center; opacity:0.3; margin-top:20px;">Здесь пока пусто...</div>`;
+            }
+
+        
+        document.getElementById('chat-title').innerText = title;
         // Логика аватарки в хедере
         if (id === 'global') {
             headerAv.style.display = "none"; // В глобале аву не кажем (там много людей)
