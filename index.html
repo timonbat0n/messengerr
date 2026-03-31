@@ -2,133 +2,136 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LiveMes. Admin Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LiveMes.</title>
     <style>
         :root { 
-            --accent: #007AFF; --bg: #f2f2f7; --glass: rgba(255, 255, 255, 0.9); 
-            --border: rgba(0, 0, 0, 0.08); --text: #000; --bubble-my: #007AFF; --bubble-other: #fff;
+            --accent: #007AFF; --bg: #f2f2f7; --glass: rgba(255, 255, 255, 0.8); 
+            --border: rgba(0, 0, 0, 0.05); --text: #000000; --bubble-my: #007AFF; --bubble-other: #ffffff;
         }
         [data-theme="dark"] {
-            --bg: #000; --glass: rgba(28, 28, 30, 0.95); --border: rgba(255, 255, 255, 0.1); 
-            --text: #fff; --bubble-other: #1c1c1e;
+            --bg: #000000; --glass: rgba(28, 28, 30, 0.9); --border: rgba(255, 255, 255, 0.1); 
+            --text: #ffffff; --bubble-other: #1c1c1e;
         }
         
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100dvh; display: flex; transition: 0.3s; overflow: hidden; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; display: flex; transition: 0.3s; overflow: hidden; }
 
-        #sidebar { 
-            width: 280px; background: var(--glass); border-right: 1px solid var(--border); 
-            backdrop-filter: blur(20px); display: flex; flex-direction: column; padding: 15px; gap: 12px; z-index: 100;
-            transition: transform 0.3s ease;
-        }
-        
-        @media (max-width: 768px) {
-            #sidebar { position: absolute; height: 100%; transform: translateX(-100%); width: 85%; }
-            #sidebar.open { transform: translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,0.3); }
-        }
+        /* Sidebar */
+        #sidebar { width: 260px; background: var(--glass); border-right: 1px solid var(--border); backdrop-filter: blur(20px); display: flex; flex-direction: column; padding: 15px; gap: 12px; z-index: 10; }
+        .search-area { background: rgba(0,0,0,0.04); border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
+        [data-theme="dark"] .search-area { background: rgba(255,255,255,0.08); }
+        .search-area input { background: none; border: none; outline: none; color: inherit; width: 100%; font-size: 0.9em; }
 
-        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 90; backdrop-filter: blur(2px); }
-        .overlay.active { display: block; }
-
-        #active-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-        .sidebar-label { margin: 15px 0 5px 5px; font-size: 10px; opacity: 0.4; text-transform: uppercase; font-weight: bold; }
-        .nav-item { padding: 12px; border-radius: 12px; cursor: pointer; font-size: 15px; color: var(--text); transition: 0.2s; }
+        #group-list-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+        .nav-item { padding: 10px; border-radius: 10px; cursor: pointer; transition: 0.2s; font-size: 0.9em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .nav-item:hover { background: rgba(0,0,0,0.04); }
         .nav-item.active { background: var(--accent); color: #fff; }
 
-        #main { flex: 1; display: flex; flex-direction: column; height: 100dvh; width: 100%; overflow: hidden; position: relative; }
-        #header { padding: 12px 15px; border-bottom: 1px solid var(--border); background: var(--glass); backdrop-filter: blur(15px); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-        
-        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        
-        .msg-row { display: flex; flex-direction: column; max-width: 85%; position: relative; }
-        .my-msg { align-self: flex-end; align-items: flex-end; }
-        
-        .sender-tag { font-size: 11px; opacity: 0.6; margin-bottom: 2px; font-weight: bold; display: flex; align-items: center; gap: 6px; width: 100%; }
-        .del-btn { cursor: pointer; font-size: 10px; opacity: 0.3; transition: 0.2s; }
-        .del-btn:hover { opacity: 1; color: #ff3b30; }
+        /* Main Chat */
+        #main { flex: 1; display: flex; flex-direction: column; position: relative; }
+        #header { padding: 10px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--glass); backdrop-filter: blur(10px); }
 
-        .bubble { padding: 10px 14px; border-radius: 18px; font-size: 16px; background: var(--bubble-other); box-shadow: 0 1px 2px rgba(0,0,0,0.05); line-height: 1.4; word-wrap: break-word; }
+        /* Right Panel (Members) */
+        #members-panel { width: 200px; background: var(--glass); border-left: 1px solid var(--border); padding: 15px; display: none; flex-direction: column; gap: 10px; backdrop-filter: blur(20px); }
+        .member-item { font-size: 0.85em; padding: 5px; border-bottom: 1px solid var(--border); opacity: 0.8; }
+        .admin-tag { color: var(--accent); font-size: 0.7em; font-weight: bold; margin-left: 5px; }
+
+        /* Messages */
+        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+        .msg-row { display: flex; flex-direction: column; max-width: 80%; position: relative; }
+        .my-msg { align-self: flex-end; align-items: flex-end; }
+        .other-msg { align-self: flex-start; align-items: flex-start; }
+        
+        .bubble { 
+            padding: 8px 14px; border-radius: 18px; font-size: 0.9em; line-height: 1.4;
+            background: var(--bubble-other); box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            max-width: 400px; overflow-wrap: anywhere;
+        }
         .my-msg .bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
         .other-msg .bubble { border-bottom-left-radius: 4px; border: 1px solid var(--border); }
-
-        #footer { 
-            padding: 10px 15px; background: var(--glass); border-top: 1px solid var(--border);
-            backdrop-filter: blur(20px); display: flex; gap: 10px; align-items: center;
-            padding-bottom: calc(12px + env(safe-area-inset-bottom)); flex-shrink: 0;
-        }
-        .input-wrap { flex: 1; background: rgba(0,0,0,0.05); border-radius: 22px; display: flex; padding: 2px 14px; align-items: center; border: 1px solid var(--border); }
-        #mInput { flex: 1; border: none; outline: none; background: none; color: inherit; padding: 12px; font-size: 16px; width: 100%; }
-
-        .modal { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .card { background: var(--glass); padding: 30px; border-radius: 28px; width: 100%; max-width: 320px; text-align: center; border: 1px solid var(--border); }
-        .card input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border); margin: 10px 0; background: rgba(0,0,0,0.02); color: inherit; font-size: 16px; outline: none; }
-        .card button { width: 100%; padding: 14px; border-radius: 12px; background: var(--accent); color: #fff; border: none; font-weight: bold; font-size: 16px; margin-top: 10px; }
+        .sender-wrap { display: flex; align-items: center; gap: 5px; margin-bottom: 2px; }
+        .sender-name { font-size: 0.7em; opacity: 0.5; font-weight: 600; }
         
-        .admin-star { color: #FFD700; font-size: 12px; }
+        .del-btn { cursor: pointer; color: #ff3b30; font-size: 0.8em; margin-left: 8px; opacity: 0; transition: 0.2s; }
+        .msg-row:hover .del-btn { opacity: 1; }
+
+        /* Footer */
+        #footer { padding: 12px 20px; display: flex; gap: 10px; align-items: center; background: var(--glass); border-top: 1px solid var(--border); }
+        .input-wrap { flex: 1; background: rgba(0,0,0,0.04); border-radius: 20px; display: flex; padding: 2px 12px; align-items: center; }
+        #mInput { flex: 1; border: none; outline: none; background: none; color: inherit; padding: 8px; font-size: 14px; }
+        
+        .btn-icon { background: none; border: none; cursor: pointer; color: var(--text); padding: 5px; display: flex; align-items: center; transition: 0.2s; }
+        .btn-icon:hover { color: var(--accent); }
+
+        .modal { position: absolute; inset: 0; background: var(--bg); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .card { background: var(--glass); padding: 30px; border-radius: 25px; width: 280px; border: 1px solid var(--border); text-align: center; }
+        .card input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); margin: 8px 0; background: rgba(0,0,0,0.02); color: inherit; box-sizing: border-box; outline: none; }
+        
+        .chat-img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
         .hidden { display: none !important; }
-        #clearBtn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 5px; opacity: 0.6; }
-        #clearBtn:hover { opacity: 1; transform: scale(1.1); }
     </style>
 </head>
 <body data-theme="light">
 
-    <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
-
-    <div id="profile-screen" class="modal hidden">
+    <div id="username-screen" class="modal hidden">
         <div class="card">
-            <h2 style="color:var(--accent)">Профиль</h2>
-            <input type="text" id="pName" placeholder="Имя">
-            <input type="text" id="pNick" placeholder="Ник (напр. timon)">
-            <button onclick="saveProfile()">Начать работу</button>
+            <h2 style="color:var(--accent); margin-top:0">LiveMes.</h2>
+            <input type="text" id="newUsername" placeholder="Ваш ник">
+            <button onclick="setupUsername()" style="width:100%; padding:12px; border-radius:10px; background:var(--accent); color:#fff; border:none; font-weight:bold; cursor:pointer;">Начать</button>
         </div>
     </div>
 
     <div id="auth-screen" class="modal">
         <div class="card">
-            <h1 style="color:var(--accent)">LiveMes.</h1>
+            <h1 style="color:var(--accent); margin-top:0">LiveMes.</h1>
             <input type="email" id="email" placeholder="Email">
             <input type="password" id="pass" placeholder="Пароль">
-            <button onclick="login()">Войти</button>
-            <p onclick="register()" style="font-size:13px; margin-top:15px; opacity:0.5; cursor:pointer;">Регистрация</p>
+            <button onclick="login()" style="width:100%; padding:12px; border-radius:10px; background:var(--accent); color:#fff; border:none; font-weight:bold; cursor:pointer;">Войти</button>
+            <p onclick="register()" style="font-size:0.8em; margin-top:15px; cursor:pointer; opacity:0.5;">Регистрация</p>
         </div>
     </div>
 
     <div id="sidebar">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="margin:0;">LiveMes.</h2>
-            <button onclick="toggleTheme()" style="background:none; border:none; font-size:22px; cursor:pointer;">🌓</button>
+            <h2 style="margin:0; font-size: 1.3em;">LiveMes.</h2>
+            <button class="btn-icon" onclick="toggleTheme()">🌓</button>
         </div>
-        <input type="text" id="globalSearch" placeholder="Поиск @ника..." onkeydown="if(event.key==='Enter') findAny()" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:rgba(0,0,0,0.03); color:inherit; outline:none; font-size:16px;">
-        <div id="active-list">
-            <div class="nav-item active" id="item-global" onclick="switchChat('global', '🌐 Глобальный чат')">🌐 Глобальный чат</div>
-            <div class="sidebar-label">Личные сообщения</div>
-            <div id="dm-list"></div>
+        <div class="search-area">
+            <input type="text" id="globalSearch" placeholder="Найти ник..." onkeydown="if(event.key==='Enter') findAny()">
         </div>
+        <div id="group-list-container">
+            <div class="nav-item active" id="item-global" onclick="switchChat('global', 'Глобальный чат')">🌐 Глобальный чат</div>
+            <div id="dynamic-groups"></div>
+        </div>
+        <button onclick="createGroup()" style="background:var(--accent); color:#fff; border:none; width:100%; padding:10px; border-radius:10px; cursor:pointer; font-size:0.8em;">+ Создать группу</button>
     </div>
 
     <div id="main">
         <div id="header">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <span onclick="toggleSidebar()" style="font-size:24px; cursor:pointer;">☰</span>
-                <h3 id="chat-title" style="margin:0;">Загрузка...</h3>
-            </div>
-            <button id="clearBtn" title="Очистить чат" class="hidden" onclick="clearCurrentChat()">🧹</button>
+            <h3 id="chat-title" style="margin:0; font-size: 1em;">Глобальный чат</h3>
+            <button class="btn-icon" onclick="toggleMembers()" id="members-btn">👤</button>
         </div>
-        
-        <div id="messages"></div>
-
+        <div style="display: flex; flex: 1; overflow: hidden;">
+            <div id="messages"></div>
+            <div id="members-panel">
+                <div style="font-weight: bold; font-size: 0.8em; margin-bottom: 10px; opacity: 0.5;">УЧАСТНИКИ</div>
+                <div id="members-list"></div>
+            </div>
+        </div>
         <div id="footer">
+            <input type="file" id="fileInput" class="hidden" accept="image/*">
             <div class="input-wrap">
-                <input type="text" id="mInput" placeholder="Сообщение..." autocomplete="off">
-                <button id="sendBtn" style="background:none; border:none; color:var(--accent); font-size:28px; cursor:pointer;">➔</button>
+                <button class="btn-icon" onclick="document.getElementById('fileInput').click()">📎</button>
+                <input type="text" id="mInput" placeholder="Сообщение...">
+                <button id="sendBtn" class="btn-icon" style="color:var(--accent);">➔</button>
             </div>
         </div>
     </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, getDoc, setDoc, where, getDocs, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, arrayUnion, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBAF8yT2TZtgJCVjZpsIWusH-25jZh2Cts",
@@ -143,10 +146,17 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    let user = null, myNick = "", myName = "", currentChatId = "global", unsubscribe = null;
+    let user = null, myNick = "", currentChatId = "global", currentAdmin = "", unsubscribe = null, unsubscribeMembers = null;
 
-    window.toggleSidebar = () => { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('active'); };
-    window.toggleTheme = () => { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); };
+    window.toggleTheme = () => {
+        const theme = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        document.body.setAttribute('data-theme', theme);
+    };
+
+    window.toggleMembers = () => {
+        const p = document.getElementById('members-panel');
+        p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
+    };
 
     onAuthStateChanged(auth, async (u) => {
         user = u;
@@ -154,133 +164,133 @@
             document.getElementById('auth-screen').classList.add('hidden');
             const snap = await getDoc(doc(db, "users", user.uid));
             if (snap.exists()) {
-                const d = snap.data();
-                myNick = d.username;
-                myName = d.name || d.username;
-                loadMyDMs();
-                switchChat('global', '🌐 Глобальный чат');
-            } else {
-                document.getElementById('profile-screen').classList.remove('hidden');
-            }
-        } else {
-            document.getElementById('auth-screen').classList.remove('hidden');
-        }
+                myNick = snap.data().username;
+                loadGroups();
+                switchChat('global', 'Глобальный чат');
+            } else document.getElementById('username-screen').classList.remove('hidden');
+        } else document.getElementById('auth-screen').classList.remove('hidden');
     });
 
-    window.saveProfile = async () => {
-        const nick = pNick.value.trim().toLowerCase();
-        const name = pName.value.trim();
-        if (nick.length < 2 || !name) return alert("Заполните поля!");
-        await setDoc(doc(db, "users", user.uid), { username: nick, name: name, online: true });
+    window.login = () => signInWithEmailAndPassword(auth, email.value, pass.value);
+    window.register = () => createUserWithEmailAndPassword(auth, email.value, pass.value);
+    window.setupUsername = async () => {
+        const nick = newUsername.value.trim().toLowerCase();
+        if (nick.length < 3) return;
+        await setDoc(doc(db, "users", user.uid), { username: nick });
         location.reload();
     };
 
-    window.login = () => signInWithEmailAndPassword(auth, email.value, pass.value).catch(e => alert(e.message));
-    window.register = () => createUserWithEmailAndPassword(auth, email.value, pass.value).catch(e => alert(e.message));
+    // --- ГРУППЫ ---
+    window.createGroup = async () => {
+        const name = prompt("Название группы:");
+        if (name) {
+            const id = "group_" + Date.now();
+            await setDoc(doc(db, "groups", id), { name, id, creator: myNick, members: [myNick] });
+            switchChat(id, "👥 " + name);
+        }
+    };
 
-    function loadMyDMs() {
-        onSnapshot(query(collection(db, "chats"), where("users", "array-contains", myNick)), (snap) => {
-            const list = document.getElementById('dm-list'); list.innerHTML = "";
+    function loadGroups() {
+        onSnapshot(collection(db, "groups"), (snap) => {
+            const list = document.getElementById('dynamic-groups');
+            list.innerHTML = "";
             snap.forEach(d => {
-                const other = d.data().users.find(u => u !== myNick);
+                const g = d.data();
                 const div = document.createElement('div');
-                div.className = `nav-item ${currentChatId === d.id ? 'active' : ''}`;
-                div.innerHTML = `💬 @${other}`;
-                div.onclick = () => { switchChat(d.id, "@" + other); if(window.innerWidth < 768) toggleSidebar(); };
+                div.className = `nav-item ${currentChatId === g.id ? 'active' : ''}`;
+                div.innerHTML = `👥 ${g.name}`;
+                div.onclick = () => switchChat(g.id, "👥 " + g.name);
                 list.appendChild(div);
             });
         });
     }
 
-    // --- ПЕРЕКЛЮЧЕНИЕ ЧАТА С АДМИН-ФУНКЦИЯМИ ---
-    window.switchChat = (id, title) => {
+    // --- СООБЩЕНИЯ И УДАЛЕНИЕ ---
+    const sendMsg = async (text = "", img = "") => {
+        if (!user || (!text && !img)) return;
+        await addDoc(collection(db, "messages"), {
+            chatId: currentChatId,
+            sender: "@" + myNick,
+            uid: user.uid,
+            text, img,
+            createdAt: serverTimestamp()
+        });
+        mInput.value = "";
+    };
+
+    window.deleteMsg = async (id) => {
+        if (confirm("Удалить сообщение?")) await deleteDoc(doc(db, "messages", id));
+    };
+
+    window.switchChat = async (id, title) => {
         currentChatId = id;
         document.getElementById('chat-title').innerText = title;
+        document.getElementById('members-btn').style.display = id === 'global' ? 'none' : 'block';
         
-        // Кнопка очистки видна только timon или в личных чатах
-        const clearBtn = document.getElementById('clearBtn');
-        if (myNick === 'timon' || id.includes(myNick)) clearBtn.classList.remove('hidden');
-        else clearBtn.classList.add('hidden');
+        // Если это группа, добавляем себя в участники и узнаем админа
+        if (id !== 'global') {
+            const gSnap = await getDoc(doc(db, "groups", id));
+            if (gSnap.exists()) {
+                currentAdmin = gSnap.data().creator;
+                await updateDoc(doc(db, "groups", id), { members: arrayUnion(myNick) });
+                renderMembers(id);
+            }
+        }
 
         if (unsubscribe) unsubscribe();
-
-        const q = query(collection(db, "messages"), where("chatId", "==", currentChatId));
-        
+        const q = query(collection(db, "messages"), orderBy("createdAt", "asc"));
         unsubscribe = onSnapshot(q, (snap) => {
             const box = document.getElementById('messages');
-            let msgs = [];
-            snap.forEach(docSnap => msgs.push({id: docSnap.id, ...docSnap.data()}));
-            msgs.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-
             box.innerHTML = "";
-            msgs.forEach(d => {
+            snap.forEach(docSnap => {
+                const d = docSnap.data();
+                if (d.chatId !== currentChatId) return;
                 const isMe = d.uid === user.uid;
-                const isAdmin = myNick === 'timon';
+                const isAdmin = myNick === currentAdmin;
                 const div = document.createElement('div');
                 div.className = `msg-row ${isMe ? 'my-msg' : 'other-msg'}`;
-                
                 div.innerHTML = `
-                    <div class="sender-tag">
-                        ${d.senderNick === 'timon' ? '<span class="admin-star">★</span>' : ''} 
-                        ${d.senderName} (@${d.senderNick})
-                        ${(isMe || isAdmin) ? `<span class="del-btn" onclick="deleteMsg('${d.id}')">🗑</span>` : ''}
+                    <div class="sender-wrap">
+                        <span class="sender-name">${d.sender}</span>
+                        ${(isAdmin || isMe) ? `<span class="del-btn" onclick="deleteMsg('${docSnap.id}')">🗑</span>` : ''}
                     </div>
-                    <div class="bubble">${d.text}</div>`;
+                    <div class="bubble">
+                        ${d.text ? `<div>${d.text}</div>` : ''}
+                        ${d.img ? `<img src="${d.img}" class="chat-img">` : ''}
+                    </div>
+                `;
                 box.appendChild(div);
             });
             box.scrollTop = box.scrollHeight;
         });
     };
 
-    // --- УДАЛЕНИЕ ---
-    window.deleteMsg = async (id) => {
-        if (confirm("Удалить это сообщение?")) {
-            await deleteDoc(doc(db, "messages", id));
+    function renderMembers(groupId) {
+        if (unsubscribeMembers) unsubscribeMembers();
+        unsubscribeMembers = onSnapshot(doc(db, "groups", groupId), (snap) => {
+            const list = document.getElementById('members-list');
+            list.innerHTML = "";
+            if (snap.exists()) {
+                snap.data().members.forEach(m => {
+                    const div = document.createElement('div');
+                    div.className = 'member-item';
+                    div.innerHTML = `@${m} ${m === snap.data().creator ? '<span class="admin-tag">ADMIN</span>' : ''}`;
+                    list.appendChild(div);
+                });
+            }
+        });
+    }
+
+    document.getElementById('sendBtn').onclick = () => sendMsg(mInput.value);
+    mInput.onkeydown = (e) => { if(e.key === 'Enter') sendMsg(mInput.value); };
+    document.getElementById('fileInput').onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => sendMsg("", reader.result);
+            reader.readAsDataURL(file);
         }
     };
-
-    window.clearCurrentChat = async () => {
-        if (!confirm("ВНИМАНИЕ! Полная очистка удалит ВСЕ сообщения в этом чате. Продолжить?")) return;
-        const q = query(collection(db, "messages"), where("chatId", "==", currentChatId));
-        const snap = await getDocs(q);
-        const batch = writeBatch(db);
-        snap.forEach(d => batch.delete(d.ref));
-        await batch.commit();
-        alert("Чат очищен!");
-    };
-
-    // --- ОТПРАВКА ---
-    const sendMsg = async () => {
-        const text = mInput.value.trim();
-        if (!text || !user) return;
-        const tempText = text;
-        mInput.value = "";
-        await addDoc(collection(db, "messages"), {
-            chatId: currentChatId,
-            senderNick: myNick,
-            senderName: myName,
-            uid: user.uid,
-            text: tempText,
-            createdAt: serverTimestamp()
-        });
-    };
-
-    window.findAny = async () => {
-        const val = globalSearch.value.trim().toLowerCase().replace('@', '');
-        if (!val || val === myNick) return;
-        const qU = query(collection(db, "users"), where("username", "==", val));
-        const snapU = await getDocs(qU);
-        if (!snapU.empty) {
-            const target = snapU.docs[0].data().username;
-            const dmId = [myNick, target].sort().join("_");
-            await setDoc(doc(db, "chats", dmId), { id: dmId, users: [myNick, target], lastUpdate: serverTimestamp() });
-            switchChat(dmId, "@" + target);
-        } else alert("Пользователь не найден");
-        globalSearch.value = "";
-    };
-
-    document.getElementById('sendBtn').onclick = sendMsg;
-    document.getElementById('mInput').onkeydown = (e) => e.key === 'Enter' && sendMsg();
 
 </script>
 </body>
