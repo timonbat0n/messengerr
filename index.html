@@ -168,30 +168,22 @@
     .hidden { display: none !important; }
     .btn-del { background:none; border:1px solid #ef4444; color:#ef4444; border-radius:8px; padding:4px 10px; font-size:12px; }
 
-    #auth-screen {
-    /* Фиксируем на весь экран */
-    position: fixed; 
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100dvh;
-    
-    /* Красим фон, чтобы чаты не просвечивали */
-    background: var(--bg); 
-    
-    /* Ставим выше всех (даже выше сайдбара и хедера) */
-    z-index: 9999; 
-    
-    /* Центрируем форму внутри */
+  #auth-screen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 99999; /* Максимальный приоритет */
+    background: #0f172a;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    pointer-events: all; /* Разрешаем взаимодействие */
 }
 
-/* Когда добавляем класс .hidden, блок должен полностью исчезать */
-#auth-screen.hidden {
-    display: none !important;
+#auth-screen input, #auth-screen button {
+    position: relative;
+    z-index: 100000; /* Чтобы точно были поверх фона */
 }
 </style>
 </head>
@@ -206,7 +198,7 @@
             <input type="text" id="reg-name" placeholder="Ваше имя" style="width:100%; margin-bottom:10px; padding:12px; border-radius:8px; border:none; background:rgba(255,255,255,0.05); color:white;">
             <input type="text" id="reg-nick" placeholder="Ваш @ник" style="width:100%; margin-bottom:10px; padding:12px; border-radius:8px; border:none; background:rgba(255,255,255,0.05); color:white;">
         </div>
-        <button id="auth-btn" style="width:100%; padding:14px; background:var(--accent); border:none; border-radius:12px; color:white; font-weight:bold; cursor:pointer;">Войти</button>
+     <button id="auth-btn">Войти</button>
         <p id="auth-toggle" style="font-size:13px; opacity:0.7; margin-top:20px; cursor:pointer;">Нет аккаунта? <b>Зарегистрироваться</b></p>
     </div>
 </div>
@@ -305,36 +297,40 @@
     onAuthStateChanged(auth, async (u) => {
         if (u) {
             user = u; 
-           document.getElementById('auth-btn').onclick = async () => {
-    const emailField = document.getElementById('email');
-    const passField = document.getElementById('pass');
-    
-    // Проверка на наличие элементов (чтобы скрипт не падал)
-    if (!emailField || !passField) {
-        console.error("Поля ввода не найдены!");
-        return;
-    }
+          // Используем addEventListener — это надежнее для мобильных браузеров
+const authBtn = document.getElementById('auth-btn');
 
-    const m = emailField.value.trim();
-    const p = passField.value.trim();
+if (authBtn) {
+    console.log("Кнопка входа найдена в DOM");
+    authBtn.addEventListener('click', async (e) => {
+        console.log("Клик по кнопке зафиксирован!");
+        e.preventDefault();
 
-    try {
-        if (isRegMode) {
-            const res = await createUserWithEmailAndPassword(auth, m, p);
-            await setDoc(doc(db, "users", res.user.uid), { 
-                name: document.getElementById('reg-name').value, 
-                username: document.getElementById('reg-nick').value.trim().toLowerCase(), 
-                avatar: "" 
-            });
-        } else {
-            await signInWithEmailAndPassword(auth, m, p);
+        const email = document.getElementById('email').value.trim();
+        const pass = document.getElementById('pass').value.trim();
+        
+        console.log("Пытаемся войти как:", email, "Режим регистрации:", isRegMode);
+
+        try {
+            if (isRegMode) {
+                const res = await createUserWithEmailAndPassword(auth, email, pass);
+                await setDoc(doc(db, "users", res.user.uid), { 
+                    name: document.getElementById('reg-name').value, 
+                    username: document.getElementById('reg-nick').value.trim().toLowerCase(), 
+                    avatar: "" 
+                });
+            } else {
+                await signInWithEmailAndPassword(auth, email, pass);
+            }
+            console.log("Авторизация прошла успешно!");
+        } catch (error) {
+            console.error("Ошибка Firebase:", error.code, error.message);
+            alert("Ошибка: " + error.code);
         }
-    } catch (e) {
-        console.error("Ошибка авторизации:", e.code);
-        alert("Ошибка: " + e.code); // Это покажет, если пароль неверный или юзера нет
-    }
-};
     });
+} else {
+    console.error("КРИТИЧЕСКАЯ ОШИБКА: Кнопка с id='auth-btn' не найдена!");
+}
 
     // --- Логика сообщений ---
     const sendMsg = async () => {
