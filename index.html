@@ -154,29 +154,38 @@
 </div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, getDoc, setDoc, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+// Добавляем специальные функции для настройки базы
+import { 
+    initializeFirestore, 
+    persistentLocalCache, 
+    persistentMultipleTabManager,
+    collection, addDoc, query, onSnapshot, serverTimestamp, doc, getDoc, setDoc, where, deleteDoc 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyBAF8yT2TZtgJCVjZpsIWusH-25jZh2Cts",
-        authDomain: "github-messenger-22bd3.firebaseapp.com",
-        databaseURL: "https://github-messenger-22bd3-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "github-messenger-22bd3",
-        storageBucket: "github-messenger-22bd3.firebasestorage.app",
-        messagingSenderId: "367012361010",
-        appId: "1:367012361010:web:d02a53013d1e2387d25d2b"
-    };
+const firebaseConfig = {
+    apiKey: "AIzaSyBAF8yT2TZtgJCVjZpsIWusH-25jZh2Cts",
+    authDomain: "github-messenger-22bd3.firebaseapp.com",
+    databaseURL: "https://github-messenger-22bd3-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "github-messenger-22bd3",
+    storageBucket: "github-messenger-22bd3.firebasestorage.app",
+    messagingSenderId: "367012361010",
+    appId: "1:367012361010:web:d02a53013d1e2387d25d2b"
+};
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+// 1. Инициализируем приложение
+const app = initializeApp(firebaseConfig);
 
-    let user = null, myNick = "", myName = "", currentChatId = "global", unsubscribe = null, currentFolder = "Все";
-    let allChats = [], isRegMode = false;
+// 2. Инициализируем Firestore с ПРИНУДИТЕЛЬНЫМ длинным опросом (Long Polling)
+// Это обходит блокировки WebSockets
+const db = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+    localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+});
 
-    const parseMD = (t) => t.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>').replace(/`(.*?)`/g, '<code>$1</code>');
-
+// 3. Инициализируем Auth
+const auth = getAuth(app);
     // Авторизация
     onAuthStateChanged(auth, async (u) => {
         if (u) {
