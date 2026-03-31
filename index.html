@@ -91,15 +91,25 @@
 </head>
 <body>
 
-    <div id="auth-screen" class="modal hidden">
-        <div class="card">
-            <h1 style="color:var(--accent); margin-bottom:25px;">LiveMes.</h1>
-            <input type="email" id="email" placeholder="Email">
-            <input type="password" id="pass" placeholder="Пароль">
-            <button onclick="loginUser()" style="width:100%; padding:14px; background:var(--accent); border:none; border-radius:12px; color:white; font-weight:bold; cursor:pointer; margin-top:10px;">Войти</button>
-            <p style="font-size:12px; opacity:0.5; margin-top:20px; cursor:pointer;" onclick="alert('Обратитесь к администратору timon для регистрации')">Нет аккаунта?</p>
+  <div id="auth-screen" class="modal">
+    <div class="card">
+        <h1 id="auth-title" style="color:var(--accent); margin-bottom:25px;">LiveMes.</h1>
+        
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="pass" placeholder="Пароль">
+        
+        <div id="reg-fields" class="hidden">
+            <input type="text" id="reg-name" placeholder="Ваше имя">
+            <input type="text" id="reg-nick" placeholder="Ваш @ник">
         </div>
+
+        <button id="auth-btn" onclick="handleAuth()" style="width:100%; padding:14px; background:var(--accent); border:none; border-radius:12px; color:white; font-weight:bold; cursor:pointer; margin-top:10px;">Войти</button>
+        
+        <p id="auth-toggle" style="font-size:13px; opacity:0.7; margin-top:20px; cursor:pointer;" onclick="toggleAuthMode()">
+            Нет аккаунта? <b>Зарегистрироваться</b>
+        </p>
     </div>
+</div>
 
     <div id="profile-screen" class="modal hidden">
         <div class="card">
@@ -309,18 +319,56 @@
             switchChat('global', 'Глобальный чат');
         }
     };
+// Добавь createUserWithEmailAndPassword в импорт из firebase-auth.js
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    window.loginUser = () => {
-        signInWithEmailAndPassword(auth, email.value, pass.value).catch(e => alert(e.message));
-    };
+let isRegMode = false;
 
-    window.saveProfile = async () => {
-        if (pName.value && pNick.value) {
-            await setDoc(doc(db, "users", user.uid), { name: pName.value, username: pNick.value.toLowerCase() });
-            location.reload();
+// Переключение между Входом и Регистрацией
+window.toggleAuthMode = () => {
+    isRegMode = !isRegMode;
+    document.getElementById('auth-title').innerText = isRegMode ? "Регистрация" : "LiveMes.";
+    document.getElementById('auth-btn').innerText = isRegMode ? "Создать аккаунт" : "Войти";
+    document.getElementById('auth-toggle').innerHTML = isRegMode ? 
+        "Уже есть аккаунт? <b>Войти</b>" : 
+        "Нет аккаунта? <b>Зарегистрироваться</b>";
+    document.getElementById('reg-fields').classList.toggle('hidden', !isRegMode);
+};
+
+// Главная функция авторизации
+window.handleAuth = async () => {
+    const mail = document.getElementById('email').value;
+    const password = document.getElementById('pass').value;
+
+    if (!mail || !password) return alert("Заполните почту и пароль");
+
+    try {
+        if (isRegMode) {
+            // РЕГИСТРАЦИЯ
+            const name = document.getElementById('reg-name').value;
+            const nick = document.getElementById('reg-nick').value.trim().toLowerCase();
+
+            if (!name || !nick) return alert("Заполните имя и ник");
+
+            const res = await createUserWithEmailAndPassword(auth, mail, password);
+            
+            // Сразу создаем профиль в Firestore
+            await setDoc(doc(db, "users", res.user.uid), {
+                name: name,
+                username: nick
+            });
+            
+            console.log("Регистрация успешна!");
+            location.reload(); // Перезагружаем, чтобы подтянулись данные
+        } else {
+            // ВХОД
+            await signInWithEmailAndPassword(auth, mail, password);
         }
-    };
-
+    } catch (e) {
+        console.error(e);
+        alert("Ошибка: " + e.message);
+    }
+};
     // Ждем, пока DOM полностью загрузится
 document.addEventListener('DOMContentLoaded', () => {
     const sBtn = document.getElementById('sendBtn');
