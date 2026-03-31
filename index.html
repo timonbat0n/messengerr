@@ -280,31 +280,78 @@
         });
     };
 
- window.sendMsg = async () => {
+// Исправленная функция отправки с таймаутом
+window.sendMsg = async () => {
     const input = document.getElementById('mInput');
     const val = input.value.trim();
     
-    console.log("Пытаюсь отправить:", { val, userId: user?.uid, chatId: currentChatId });
+    console.log("--- СТАРТ ОТПРАВКИ ---");
+    console.log("Данные:", { 
+        text: val, 
+        userID: user ? user.uid : "НЕТ ЮЗЕРА", 
+        chat: currentChatId,
+        nick: myNick 
+    });
 
-    if (!val) return;
-    if (!user) return alert("Ошибка: Вы не авторизованы!");
+    if (!val || !user) {
+        console.error("Отмена: Пустое поле или нет юзера");
+        return;
+    }
+
+    // Создаем обещание с таймаутом, чтобы код не висел бесконечно
+    const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Таймаут: Firebase не отвечает")), 5000)
+    );
 
     try {
-        const docRef = await addDoc(collection(db, "messages"), {
+        const sendPromise = addDoc(collection(db, "messages"), {
             chatId: currentChatId,
             text: val,
             uid: user.uid,
-            senderName: myName || "Аноним", // Фолбэк, если профиль не прогрузился
+            senderName: myName || "Аноним",
             senderNick: myNick || "user",
             createdAt: serverTimestamp()
         });
-        console.log("✅ Успех! ID сообщения:", docRef.id);
+
+        await Promise.race([sendPromise, timeout]);
+        
+        console.log("✅ СООБЩЕНИЕ ОТПРАВЛЕНО!");
         input.value = "";
     } catch (e) {
-        console.error("❌ Ошибка при отправке:", e.code, e.message);
-        alert("Ошибка отправки: " + e.message);
+        console.error("❌ ОШИБКА:", e.message);
+        alert("Ошибка: " + e.message);
     }
 };
+
+// Исправленный вход (чтобы данные юзера точно были под рукой)
+onAuthStateChanged(auth, async (u) => {
+    console.log("Статус входа изменился:", u ? "Вошел" : "Вышел");
+    if (u) {
+        user = u;
+        document.getElementById('auth-screen').classList.add('hidden');
+        try {
+            const snap = await getDoc(doc(db, "users", u.uid));
+            if (snap.exists()) {
+                myNick = snap.data().username;
+                myName = snap.data().name;
+                console.log("Профиль загружен:", myNick);
+                updateUI();
+                loadSidebar();
+                switchChat('global', 'Глобальный чат');
+            } else {
+                console.warn("Документ пользователя не найден в Firestore!");
+                // Если дока нет, создадим временный ник из почты
+                myNick = u.email.split('@')[0];
+                myName = myNick;
+                updateUI();
+            }
+        } catch (err) {
+            console.error("Ошибка загрузки профиля:", err);
+        }
+    } else {
+        document.getElementById('auth-screen').classList.remove('hidden');
+    }
+});
 
     // Слушатели событий
     document.getElementById('sendBtn').onclick = sendMsg;
