@@ -146,10 +146,10 @@
     </div>
     <div id="messages"></div>
    <div id="footer">
-    <div class="input-wrap">
-        <input type="text" id="mInput" placeholder="Сообщение..." autocomplete="off">
-    </div>
-    <button id="sendBtn" class="btn-action">➔</button>
+    <input type="text" id="mInput" placeholder="Сообщение...">
+    <button id="sendBtn">➔</button>
+   </div>
+</div>
 </div>
 </div>
 
@@ -375,6 +375,34 @@
     };
 
     window.switchChat = switchChat;
+    // Оборачиваем в проверку, чтобы кнопки точно нашлись
+const bindEvents = () => {
+    const sBtn = document.getElementById('sendBtn');
+    const input = document.getElementById('mInput');
+
+    if (sBtn) {
+        sBtn.onclick = (e) => {
+            e.preventDefault();
+            window.sendMsg();
+        };
+    }
+
+    if (input) {
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                window.sendMsg();
+            }
+        };
+    }
+};
+
+// Запускаем при загрузке
+window.addEventListener('DOMContentLoaded', bindEvents);
+// И на всякий случай запускаем еще раз после входа
+onAuthStateChanged(auth, (u) => {
+    if (u) setTimeout(bindEvents, 500); 
+});
 </script>
 </body>
 </html>
