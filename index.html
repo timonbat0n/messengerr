@@ -2,136 +2,175 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>LiveMes.</title>
     <style>
         :root { 
-            --accent: #007AFF; --bg: #f2f2f7; --glass: rgba(255, 255, 255, 0.8); 
-            --border: rgba(0, 0, 0, 0.05); --text: #000000; --bubble-my: #007AFF; --bubble-other: #ffffff;
+            --accent: #007AFF; --bg: #f2f2f7; --glass: rgba(255, 255, 255, 0.85); 
+            --border: rgba(0, 0, 0, 0.1); --text: #000; --bubble-my: #007AFF; --bubble-other: #fff;
+            --sidebar-w: 300px;
         }
         [data-theme="dark"] {
-            --bg: #000000; --glass: rgba(28, 28, 30, 0.9); --border: rgba(255, 255, 255, 0.1); 
-            --text: #ffffff; --bubble-other: #1c1c1e;
+            --bg: #000; --glass: rgba(28, 28, 30, 0.9); --border: rgba(255, 255, 255, 0.1); 
+            --text: #fff; --bubble-other: #1c1c1e;
         }
         
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; display: flex; transition: 0.3s; overflow: hidden; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100dvh; display: flex; transition: background 0.3s; overflow: hidden; }
 
         /* Sidebar */
-        #sidebar { width: 260px; background: var(--glass); border-right: 1px solid var(--border); backdrop-filter: blur(20px); display: flex; flex-direction: column; padding: 15px; gap: 12px; z-index: 10; }
-        .search-area { background: rgba(0,0,0,0.04); border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
-        [data-theme="dark"] .search-area { background: rgba(255,255,255,0.08); }
-        .search-area input { background: none; border: none; outline: none; color: inherit; width: 100%; font-size: 0.9em; }
+        #sidebar { 
+            width: var(--sidebar-w); background: var(--glass); border-right: 1px solid var(--border); 
+            backdrop-filter: blur(25px); display: flex; flex-direction: column; z-index: 100;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @media (max-width: 768px) {
+            #sidebar { position: absolute; height: 100%; transform: translateX(-100%); width: 85%; }
+            #sidebar.open { transform: translateX(0); box-shadow: 20px 0 50px rgba(0,0,0,0.2); }
+        }
 
-        #group-list-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-        .nav-item { padding: 10px; border-radius: 10px; cursor: pointer; transition: 0.2s; font-size: 0.9em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .nav-item:hover { background: rgba(0,0,0,0.04); }
+        .sb-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .search-box { padding: 0 15px 15px; }
+        .search-box input { width: 100%; padding: 12px; border-radius: 12px; border: none; background: rgba(0,0,0,0.05); color: inherit; outline: none; font-size: 16px; }
+        [data-theme="dark"] .search-box input { background: rgba(255,255,255,0.1); }
+
+        #active-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .sidebar-label { margin: 15px 0 8px 10px; font-size: 11px; opacity: 0.5; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+        .nav-item { padding: 12px 15px; border-radius: 14px; cursor: pointer; display: flex; align-items: center; gap: 12px; margin-bottom: 4px; transition: 0.2s; }
+        .nav-item:hover { background: rgba(0,0,0,0.03); }
         .nav-item.active { background: var(--accent); color: #fff; }
 
         /* Main Chat */
-        #main { flex: 1; display: flex; flex-direction: column; position: relative; }
-        #header { padding: 10px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--glass); backdrop-filter: blur(10px); }
-
-        /* Right Panel (Members) */
-        #members-panel { width: 200px; background: var(--glass); border-left: 1px solid var(--border); padding: 15px; display: none; flex-direction: column; gap: 10px; backdrop-filter: blur(20px); }
-        .member-item { font-size: 0.85em; padding: 5px; border-bottom: 1px solid var(--border); opacity: 0.8; }
-        .admin-tag { color: var(--accent); font-size: 0.7em; font-weight: bold; margin-left: 5px; }
-
-        /* Messages */
-        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-        .msg-row { display: flex; flex-direction: column; max-width: 80%; position: relative; }
-        .my-msg { align-self: flex-end; align-items: flex-end; }
-        .other-msg { align-self: flex-start; align-items: flex-start; }
+        #main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
         
-        .bubble { 
-            padding: 8px 14px; border-radius: 18px; font-size: 0.9em; line-height: 1.4;
-            background: var(--bubble-other); box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            max-width: 400px; overflow-wrap: anywhere;
+        #header { 
+            padding: 10px 20px; height: 64px; border-bottom: 1px solid var(--border); 
+            background: var(--glass); backdrop-filter: blur(15px); 
+            display: flex; align-items: center; justify-content: space-between; z-index: 10;
         }
-        .my-msg .bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
-        .other-msg .bubble { border-bottom-left-radius: 4px; border: 1px solid var(--border); }
-        .sender-wrap { display: flex; align-items: center; gap: 5px; margin-bottom: 2px; }
-        .sender-name { font-size: 0.7em; opacity: 0.5; font-weight: 600; }
-        
-        .del-btn { cursor: pointer; color: #ff3b30; font-size: 0.8em; margin-left: 8px; opacity: 0; transition: 0.2s; }
-        .msg-row:hover .del-btn { opacity: 1; }
 
-        /* Footer */
-        #footer { padding: 12px 20px; display: flex; gap: 10px; align-items: center; background: var(--glass); border-top: 1px solid var(--border); }
-        .input-wrap { flex: 1; background: rgba(0,0,0,0.04); border-radius: 20px; display: flex; padding: 2px 12px; align-items: center; }
-        #mInput { flex: 1; border: none; outline: none; background: none; color: inherit; padding: 8px; font-size: 14px; }
-        
-        .btn-icon { background: none; border: none; cursor: pointer; color: var(--text); padding: 5px; display: flex; align-items: center; transition: 0.2s; }
-        .btn-icon:hover { color: var(--accent); }
+        .chat-info { cursor: pointer; display: flex; flex-direction: column; }
+        .chat-info h3 { margin: 0; font-size: 17px; }
+        .chat-info span { font-size: 12px; opacity: 0.5; }
 
-        .modal { position: absolute; inset: 0; background: var(--bg); z-index: 1000; display: flex; align-items: center; justify-content: center; }
-        .card { background: var(--glass); padding: 30px; border-radius: 25px; width: 280px; border: 1px solid var(--border); text-align: center; }
-        .card input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); margin: 8px 0; background: rgba(0,0,0,0.02); color: inherit; box-sizing: border-box; outline: none; }
+        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
         
-        .chat-img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
+        .msg { display: flex; flex-direction: column; max-width: 75%; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .msg.me { align-self: flex-end; }
+        .msg.other { align-self: flex-start; }
+
+        .msg-info { font-size: 11px; opacity: 0.5; margin-bottom: 4px; padding: 0 5px; display: flex; align-items: center; gap: 4px; }
+        .bubble { padding: 10px 16px; border-radius: 20px; font-size: 16px; line-height: 1.4; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        .me .bubble { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+        .other .bubble { background: var(--bubble-other); border-bottom-left-radius: 4px; border: 1px solid var(--border); }
+
+        /* Input Area */
+        #footer { padding: 10px 20px; background: var(--glass); backdrop-filter: blur(20px); border-top: 1px solid var(--border); padding-bottom: calc(15px + env(safe-area-inset-bottom)); }
+        .input-row { display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.05); padding: 5px 15px; border-radius: 25px; }
+        [data-theme="dark"] .input-row { background: rgba(255,255,255,0.08); }
+        #mInput { flex: 1; border: none; background: transparent; color: inherit; padding: 10px 0; font-size: 16px; outline: none; }
+        #sendBtn { background: none; border: none; color: var(--accent); font-weight: 700; cursor: pointer; font-size: 16px; }
+
+        /* Modals */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .modal.active { opacity: 1; pointer-events: auto; }
+        .card { background: var(--glass); padding: 25px; border-radius: 30px; width: 100%; max-width: 350px; border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .card h2 { margin-top: 0; }
+        .card input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); color: inherit; outline: none; }
+        .card button { width: 100%; padding: 14px; border-radius: 15px; border: none; background: var(--accent); color: #fff; font-weight: 700; margin-top: 10px; cursor: pointer; }
+
+        .member-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .btn-mini { padding: 6px 12px; border-radius: 20px; font-size: 11px; background: rgba(0,0,0,0.05); border: none; cursor: pointer; color: var(--accent); font-weight: bold; }
+
         .hidden { display: none !important; }
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.2); z-index: 95; }
+        .overlay.active { display: block; }
     </style>
 </head>
 <body data-theme="light">
 
-    <div id="username-screen" class="modal hidden">
+    <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+
+    <div id="profile-modal" class="modal">
         <div class="card">
-            <h2 style="color:var(--accent); margin-top:0">LiveMes.</h2>
-            <input type="text" id="newUsername" placeholder="Ваш ник">
-            <button onclick="setupUsername()" style="width:100%; padding:12px; border-radius:10px; background:var(--accent); color:#fff; border:none; font-weight:bold; cursor:pointer;">Начать</button>
+            <h2>Твой профиль</h2>
+            <input type="text" id="pName" placeholder="Твое имя">
+            <input type="text" id="pNick" placeholder="Ник (напр. timon)">
+            <button onclick="saveProfile()">Начать общение</button>
         </div>
     </div>
 
-    <div id="auth-screen" class="modal">
+    <div id="auth-modal" class="modal">
         <div class="card">
-            <h1 style="color:var(--accent); margin-top:0">LiveMes.</h1>
+            <h1 style="color:var(--accent); margin-bottom:5px;">LiveMes.</h1>
+            <p style="opacity:0.6; margin-bottom:20px;">Новое поколение мессенджера</p>
             <input type="email" id="email" placeholder="Email">
             <input type="password" id="pass" placeholder="Пароль">
-            <button onclick="login()" style="width:100%; padding:12px; border-radius:10px; background:var(--accent); color:#fff; border:none; font-weight:bold; cursor:pointer;">Войти</button>
-            <p onclick="register()" style="font-size:0.8em; margin-top:15px; cursor:pointer; opacity:0.5;">Регистрация</p>
+            <button onclick="login()">Войти</button>
+            <button onclick="register()" style="background:none; color:var(--text); opacity:0.6;">Нет аккаунта? Создать</button>
+        </div>
+    </div>
+
+    <div id="info-modal" class="modal" onclick="closeModal('info-modal')">
+        <div class="card" onclick="event.stopPropagation()">
+            <h3 id="info-title">Участники</h3>
+            <div id="member-list" style="max-height: 300px; overflow-y: auto; text-align: left;"></div>
+            <button onclick="clearCurrentChat()" id="adm-clear-btn" style="background:#ff3b30;" class="hidden">🧹 Очистить весь чат</button>
+            <button onclick="closeModal('info-modal')" style="background:rgba(0,0,0,0.05); color:var(--text); margin-top:20px;">Закрыть</button>
         </div>
     </div>
 
     <div id="sidebar">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="margin:0; font-size: 1.3em;">LiveMes.</h2>
-            <button class="btn-icon" onclick="toggleTheme()">🌓</button>
+        <div class="sb-header">
+            <h2 style="margin:0; font-size:24px;">LiveMes.</h2>
+            <button onclick="toggleTheme()" style="background:none; border:none; font-size:22px; cursor:pointer;">🌓</button>
         </div>
-        <div class="search-area">
-            <input type="text" id="globalSearch" placeholder="Найти ник..." onkeydown="if(event.key==='Enter') findAny()">
+        
+        <div class="search-box">
+            <input type="text" id="globalSearch" placeholder="Поиск ника или группы..." onkeydown="if(event.key==='Enter') findAny()">
         </div>
-        <div id="group-list-container">
-            <div class="nav-item active" id="item-global" onclick="switchChat('global', 'Глобальный чат')">🌐 Глобальный чат</div>
-            <div id="dynamic-groups"></div>
+
+        <div id="active-list">
+            <div class="nav-item active" id="item-global" onclick="switchChat('global', '🌐 Глобальный чат')">
+                <span>🌐</span> <b>Глобальный чат</b>
+            </div>
+            
+            <div class="sidebar-label">Диалоги</div>
+            <div id="dm-list"></div>
+
+            <div class="sidebar-label">Группы</div>
+            <div id="group-list"></div>
         </div>
-        <button onclick="createGroup()" style="background:var(--accent); color:#fff; border:none; width:100%; padding:10px; border-radius:10px; cursor:pointer; font-size:0.8em;">+ Создать группу</button>
     </div>
 
     <div id="main">
         <div id="header">
-            <h3 id="chat-title" style="margin:0; font-size: 1em;">Глобальный чат</h3>
-            <button class="btn-icon" onclick="toggleMembers()" id="members-btn">👤</button>
-        </div>
-        <div style="display: flex; flex: 1; overflow: hidden;">
-            <div id="messages"></div>
-            <div id="members-panel">
-                <div style="font-weight: bold; font-size: 0.8em; margin-bottom: 10px; opacity: 0.5;">УЧАСТНИКИ</div>
-                <div id="members-list"></div>
+            <div style="display:flex; align-items:center; gap:15px;">
+                <span onclick="toggleSidebar()" style="font-size:22px; cursor:pointer;">☰</span>
+                <div class="chat-info" onclick="openInfo()">
+                    <h3 id="chat-title">LiveMes.</h3>
+                    <span id="chat-status">нажми для инфо</span>
+                </div>
             </div>
         </div>
+        
+        <div id="messages"></div>
+
         <div id="footer">
-            <input type="file" id="fileInput" class="hidden" accept="image/*">
-            <div class="input-wrap">
-                <button class="btn-icon" onclick="document.getElementById('fileInput').click()">📎</button>
-                <input type="text" id="mInput" placeholder="Сообщение...">
-                <button id="sendBtn" class="btn-icon" style="color:var(--accent);">➔</button>
+            <div class="input-row">
+                <input type="text" id="mInput" placeholder="Ваше сообщение..." autocomplete="off">
+                <button id="sendBtn">➔</button>
             </div>
         </div>
     </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, arrayUnion, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, arrayUnion, where, getDocs, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBAF8yT2TZtgJCVjZpsIWusH-25jZh2Cts",
@@ -146,151 +185,180 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    let user = null, myNick = "", currentChatId = "global", currentAdmin = "", unsubscribe = null, unsubscribeMembers = null;
+    let user = null, myNick = "", myName = "", currentChatId = "global", unsubscribe = null, currentGroupData = null;
 
-    window.toggleTheme = () => {
-        const theme = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-        document.body.setAttribute('data-theme', theme);
-    };
-
-    window.toggleMembers = () => {
-        const p = document.getElementById('members-panel');
-        p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
-    };
+    window.toggleSidebar = () => { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('active'); };
+    window.toggleTheme = () => { const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; document.body.setAttribute('data-theme', next); };
+    window.closeModal = (id) => document.getElementById(id).classList.remove('active');
 
     onAuthStateChanged(auth, async (u) => {
         user = u;
         if (user) {
-            document.getElementById('auth-screen').classList.add('hidden');
+            closeModal('auth-modal');
             const snap = await getDoc(doc(db, "users", user.uid));
             if (snap.exists()) {
-                myNick = snap.data().username;
-                loadGroups();
-                switchChat('global', 'Глобальный чат');
-            } else document.getElementById('username-screen').classList.remove('hidden');
-        } else document.getElementById('auth-screen').classList.remove('hidden');
+                const d = snap.data(); myNick = d.username; myName = d.name;
+                loadLists(); switchChat('global', '🌐 Глобальный чат');
+            } else { document.getElementById('profile-modal').classList.add('active'); }
+        } else { document.getElementById('auth-modal').classList.add('active'); }
     });
 
-    window.login = () => signInWithEmailAndPassword(auth, email.value, pass.value);
-    window.register = () => createUserWithEmailAndPassword(auth, email.value, pass.value);
-    window.setupUsername = async () => {
-        const nick = newUsername.value.trim().toLowerCase();
-        if (nick.length < 3) return;
-        await setDoc(doc(db, "users", user.uid), { username: nick });
+    window.saveProfile = async () => {
+        const nick = pNick.value.trim().toLowerCase();
+        if (nick.length < 2) return alert("Ник слишком короткий");
+        await setDoc(doc(db, "users", user.uid), { username: nick, name: pName.value.trim(), createdAt: serverTimestamp() });
         location.reload();
     };
 
-    // --- ГРУППЫ ---
-    window.createGroup = async () => {
-        const name = prompt("Название группы:");
-        if (name) {
-            const id = "group_" + Date.now();
-            await setDoc(doc(db, "groups", id), { name, id, creator: myNick, members: [myNick] });
-            switchChat(id, "👥 " + name);
-        }
-    };
+    window.login = () => signInWithEmailAndPassword(auth, email.value, pass.value).catch(e => alert("Ошибка входа"));
+    window.register = () => createUserWithEmailAndPassword(auth, email.value, pass.value).catch(e => alert("Ошибка регистрации"));
 
-    function loadGroups() {
-        onSnapshot(collection(db, "groups"), (snap) => {
-            const list = document.getElementById('dynamic-groups');
-            list.innerHTML = "";
+    function loadLists() {
+        // Личка
+        onSnapshot(query(collection(db, "chats"), where("users", "array-contains", myNick)), (snap) => {
+            const list = document.getElementById('dm-list'); list.innerHTML = "";
+            snap.forEach(d => {
+                const other = d.data().users.find(u => u !== myNick);
+                const div = document.createElement('div'); div.className = `nav-item ${currentChatId === d.id ? 'active' : ''}`;
+                div.innerHTML = `<span>👤</span> <b>${other}</b>`;
+                div.onclick = () => switchChat(d.id, "@" + other);
+                list.appendChild(div);
+            });
+        });
+        // Группы
+        onSnapshot(query(collection(db, "groups"), where("members", "array-contains", myNick)), (snap) => {
+            const list = document.getElementById('group-list'); list.innerHTML = "";
             snap.forEach(d => {
                 const g = d.data();
-                const div = document.createElement('div');
-                div.className = `nav-item ${currentChatId === g.id ? 'active' : ''}`;
-                div.innerHTML = `👥 ${g.name}`;
-                div.onclick = () => switchChat(g.id, "👥 " + g.name);
+                const div = document.createElement('div'); div.className = `nav-item ${currentChatId === d.id ? 'active' : ''}`;
+                div.innerHTML = `<span>👥</span> <b>${g.name}</b>`;
+                div.onclick = () => switchChat(d.id, "👥 " + g.name);
                 list.appendChild(div);
             });
         });
     }
 
-    // --- СООБЩЕНИЯ И УДАЛЕНИЕ ---
-    const sendMsg = async (text = "", img = "") => {
-        if (!user || (!text && !img)) return;
-        await addDoc(collection(db, "messages"), {
-            chatId: currentChatId,
-            sender: "@" + myNick,
-            uid: user.uid,
-            text, img,
-            createdAt: serverTimestamp()
-        });
-        mInput.value = "";
-    };
-
-    window.deleteMsg = async (id) => {
-        if (confirm("Удалить сообщение?")) await deleteDoc(doc(db, "messages", id));
-    };
-
     window.switchChat = async (id, title) => {
         currentChatId = id;
         document.getElementById('chat-title').innerText = title;
-        document.getElementById('members-btn').style.display = id === 'global' ? 'none' : 'block';
-        
-        // Если это группа, добавляем себя в участники и узнаем админа
-        if (id !== 'global') {
+        if (window.innerWidth < 768) toggleSidebar();
+
+        // Проверка админки
+        if (id !== 'global' && !id.includes('_')) {
             const gSnap = await getDoc(doc(db, "groups", id));
-            if (gSnap.exists()) {
-                currentAdmin = gSnap.data().creator;
-                await updateDoc(doc(db, "groups", id), { members: arrayUnion(myNick) });
-                renderMembers(id);
-            }
-        }
+            currentGroupData = gSnap.data();
+        } else { currentGroupData = { admins: ['timon'] }; }
 
         if (unsubscribe) unsubscribe();
-        const q = query(collection(db, "messages"), orderBy("createdAt", "asc"));
+        const q = query(collection(db, "messages"), where("chatId", "==", currentChatId));
         unsubscribe = onSnapshot(q, (snap) => {
             const box = document.getElementById('messages');
+            let msgs = []; snap.forEach(docSnap => msgs.push({id: docSnap.id, ...docSnap.data()}));
+            msgs.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
             box.innerHTML = "";
-            snap.forEach(docSnap => {
-                const d = docSnap.data();
-                if (d.chatId !== currentChatId) return;
+            msgs.forEach(d => {
                 const isMe = d.uid === user.uid;
-                const isAdmin = myNick === currentAdmin;
-                const div = document.createElement('div');
-                div.className = `msg-row ${isMe ? 'my-msg' : 'other-msg'}`;
+                const isAdm = myNick === 'timon' || currentGroupData?.admins?.includes(myNick);
+                const div = document.createElement('div'); div.className = `msg ${isMe ? 'me' : 'other'}`;
                 div.innerHTML = `
-                    <div class="sender-wrap">
-                        <span class="sender-name">${d.sender}</span>
-                        ${(isAdmin || isMe) ? `<span class="del-btn" onclick="deleteMsg('${docSnap.id}')">🗑</span>` : ''}
+                    <div class="msg-info">
+                        ${d.senderNick === 'timon' ? '<b style="color:#FFD700">★</b>' : ''} ${d.senderName} 
+                        ${(isMe || isAdm) ? `<span onclick="deleteMsg('${d.id}')" style="cursor:pointer; margin-left:5px;">✕</span>` : ''}
                     </div>
-                    <div class="bubble">
-                        ${d.text ? `<div>${d.text}</div>` : ''}
-                        ${d.img ? `<img src="${d.img}" class="chat-img">` : ''}
-                    </div>
-                `;
+                    <div class="bubble">${d.text}</div>`;
                 box.appendChild(div);
             });
             box.scrollTop = box.scrollHeight;
         });
     };
 
-    function renderMembers(groupId) {
-        if (unsubscribeMembers) unsubscribeMembers();
-        unsubscribeMembers = onSnapshot(doc(db, "groups", groupId), (snap) => {
-            const list = document.getElementById('members-list');
-            list.innerHTML = "";
-            if (snap.exists()) {
-                snap.data().members.forEach(m => {
-                    const div = document.createElement('div');
-                    div.className = 'member-item';
-                    div.innerHTML = `@${m} ${m === snap.data().creator ? '<span class="admin-tag">ADMIN</span>' : ''}`;
-                    list.appendChild(div);
-                });
-            }
+    window.sendMsg = async () => {
+        const text = mInput.value.trim(); if (!text || !user) return;
+        mInput.value = "";
+        await addDoc(collection(db, "messages"), {
+            chatId: currentChatId, senderNick: myNick, senderName: myName, uid: user.uid, text, createdAt: serverTimestamp()
         });
-    }
-
-    document.getElementById('sendBtn').onclick = () => sendMsg(mInput.value);
-    mInput.onkeydown = (e) => { if(e.key === 'Enter') sendMsg(mInput.value); };
-    document.getElementById('fileInput').onchange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => sendMsg("", reader.result);
-            reader.readAsDataURL(file);
-        }
     };
+
+    window.deleteMsg = (id) => confirm("Удалить сообщение?") && deleteDoc(doc(db, "messages", id));
+
+    window.openInfo = async () => {
+        if (currentChatId === 'global' || currentChatId.includes('_')) {
+            alert("Информация доступна только для групп.");
+            return;
+        }
+        const modal = document.getElementById('info-modal');
+        const list = document.getElementById('member-list');
+        const clearBtn = document.getElementById('adm-clear-btn');
+        list.innerHTML = "Загрузка...";
+        modal.classList.add('active');
+
+        const gSnap = await getDoc(doc(db, "groups", currentChatId));
+        const g = gSnap.data();
+        list.innerHTML = "";
+        
+        const isMeAdmin = myNick === 'timon' || g.admins.includes(myNick);
+        if (isMeAdmin) clearBtn.classList.remove('hidden'); else clearBtn.classList.add('hidden');
+
+        g.members.forEach(m => {
+            const isTargetAdm = g.admins.includes(m);
+            const div = document.createElement('div'); div.className = "member-row";
+            div.innerHTML = `
+                <span>${isTargetAdm ? '👑' : '👤'} @${m}</span>
+                ${(isMeAdmin && !isTargetAdm) ? `<button class="btn-mini" onclick="promote('${m}')">Короновать</button>` : ''}
+            `;
+            list.appendChild(div);
+        });
+    };
+
+    window.promote = async (nick) => {
+        await updateDoc(doc(db, "groups", currentChatId), { admins: arrayUnion(nick) });
+        alert(nick + " теперь админ!");
+        openInfo();
+    };
+
+    window.clearCurrentChat = async () => {
+        if (!confirm("Удалить ВСЕ сообщения в этом чате?")) return;
+        const q = query(collection(db, "messages"), where("chatId", "==", currentChatId));
+        const snap = await getDocs(q);
+        const batch = writeBatch(db);
+        snap.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        alert("Чат девственно чист.");
+        closeModal('info-modal');
+    };
+
+    window.findAny = async () => {
+        const val = globalSearch.value.trim().toLowerCase().replace('@', '');
+        if (!val || val === myNick) return;
+        
+        const qU = query(collection(db, "users"), where("username", "==", val));
+        const snapU = await getDocs(qU);
+
+        if (!snapU.empty) {
+            // ЛИЧКА (Исправлено)
+            const dmId = [myNick, val].sort().join("_");
+            await setDoc(doc(db, "chats", dmId), { id: dmId, users: [myNick, val], lastUpdate: serverTimestamp() }, { merge: true });
+            switchChat(dmId, "@" + val);
+        } else {
+            // ГРУППА
+            const gRef = doc(db, "groups", val);
+            const gSnap = await getDoc(gRef);
+            if (gSnap.exists()) {
+                await updateDoc(gRef, { members: arrayUnion(myNick) });
+                switchChat(val, "👥 " + gSnap.data().name);
+            } else {
+                if (confirm("Группа @" + val + " не найдена. Создать?")) {
+                    await setDoc(gRef, { id: val, name: val, members: [myNick], admins: [myNick] });
+                    switchChat(val, "👥 " + val);
+                }
+            }
+        }
+        globalSearch.value = "";
+    };
+
+    document.getElementById('sendBtn').onclick = sendMsg;
+    document.getElementById('mInput').onkeydown = (e) => e.key === 'Enter' && sendMsg();
 
 </script>
 </body>
