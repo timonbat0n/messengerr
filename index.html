@@ -217,8 +217,10 @@
     });
     const auth = getAuth(app);
 
+    // Глобальные переменные состояния
     let user = null, myNick = "", myName = "", myAvatar = "", currentChatId = "global", unsubMsgs = null, currentFolder = "Все", allChats = [], isRegMode = false;
 
+    // --- Утилиты ---
     const parseMD = (t) => t.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>').replace(/__(.*?)__/g, '<u>$1</u>').replace(/`(.*?)`/g, '<code>$1</code>');
     const formatTime = (ts) => ts ? ts.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
@@ -227,36 +229,118 @@
         document.getElementById('u-nick').innerText = "@" + (data.username || "user");
         myAvatar = data.avatar || "";
         const av = document.getElementById('u-avatar');
-        if(myAvatar) { av.style.backgroundImage = `url(${myAvatar})`; av.innerText = ""; }
-        else { av.style.backgroundImage = "none"; av.innerText = (data.name ? data.name[0] : "?").toUpperCase(); }
+        if(myAvatar) { 
+            av.style.backgroundImage = `url('${myAvatar}')`; 
+            av.innerText = ""; 
+        } else { 
+            av.style.backgroundImage = "none"; 
+            av.innerText = (data.name ? data.name[0] : "?").toUpperCase(); 
+        }
     };
 
+    // --- Авторизация ---
     onAuthStateChanged(auth, async (u) => {
         if (u) {
-            user = u; document.getElementById('auth-screen').classList.add('hidden');
+            user = u; 
+            document.getElementById('auth-screen').classList.add('hidden');
             const snap = await getDoc(doc(db, "users", u.uid));
             if (snap.exists()) {
-                const d = snap.data(); myNick = d.username; myName = d.name;
-                updateUI(d); loadSidebar(); switchChat('global', 'Глобальный чат');
+                const d = snap.data(); 
+                myNick = d.username; 
+                myName = d.name;
+                updateUI(d); 
+                loadSidebar(); 
+                switchChat('global', 'Глобальный чат');
             }
-        } else document.getElementById('auth-screen').classList.remove('hidden');
+        } else {
+            document.getElementById('auth-screen').classList.remove('hidden');
+        }
     });
 
+    // --- Логика сообщений ---
     const sendMsg = async () => {
         const input = document.getElementById('mInput');
         const val = input.value.trim();
         if (!val || !user) return;
+
+        // Предварительная очистка поля для предотвращения дублей
         input.value = "";
-        await addDoc(collection(db, "messages"), {
-            chatId: currentChatId, text: val, uid: user.uid,
-            senderName: myName, senderNick: myNick, senderAvatar: myAvatar,
-            createdAt: serverTimestamp(), read: false
+
+        try {
+            await addDoc(collection(db, "messages"), {
+                chatId: currentChatId, 
+                text: val, 
+                uid: user.uid,
+                senderName: myName, 
+                senderNick: myNick, 
+                senderAvatar: myAvatar, // Используем актуальную аву из переменной
+                createdAt: serverTimestamp(), 
+                read: false
+            });
+        } catch(e) {
+            console.error("Ошибка при отправке:", e);
+            input.value = val; // Возвращаем текст в случае ошибки
+        }
+    };
+
+   const switchChat = (id, title) => {
+        currentChatId = id;
+        document.getElementById('chat-title').innerText = title;
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('del-btn').classList.toggle('hidden', id === 'global');
+        
+        if (unsubMsgs) unsubMsgs();
+        
+        unsubMsgs = onSnapshot(query(collection(db, "messages"), where("chatId", "==", id)), (snap) => {
+            const box = document.getElementById('messages');
+            let msgs = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+            box.innerHTML = "";
+            
+            msgs.forEach(m => {
+                const isMe = m.uid === user?.uid;
+                
+                // 1. Проверяем наличие авы в самом сообщении
+                const photoUrl = m.senderAvatar && m.senderAvatar.trim() !== "" ? m.senderAvatar : null;
+                
+                // 2. Формируем стиль. Если есть фото — ставим его фоном, если нет — стандартный акцент
+                let avStyle = "";
+                let avContent = "";
+
+                if (photoUrl) {
+                    avStyle = `background-image: url('${photoUrl}'); background-size: cover; background-position: center; border: 1px solid var(--glass-border);`;
+                    avContent = ""; // Картинка есть, буквы не нужны
+                } else {
+                    avStyle = `background-color: var(--accent);`;
+                    avContent = (m.senderName ? m.senderName[0] : "?").toUpperCase();
+                }
+                
+                box.innerHTML += `
+                    <div class="msg-row ${isMe ? 'me' : 'other'}">
+                        <div class="msg-avatar" style="${avStyle}">${avContent}</div>
+                        <div class="msg-content">
+                            <div class="msg-meta">
+                                <b>${m.senderNick === 'timon' ? '⭐ ' : ''}${m.senderName}</b> • ${formatTime(m.createdAt)}
+                            </div>
+                            <div class="bubble">
+                                ${parseMD(m.text || "")}
+                                ${isMe ? `<span style="font-size:10px; margin-left:5px; opacity:0.7;">${m.read ? '✓✓' : '✓'}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>`;
+                
+                if (!isMe && !m.read && currentChatId !== 'global') {
+                    updateDoc(doc(db, "messages", m.id), { read: true });
+                }
+            });
+            box.scrollTop = box.scrollHeight;
         });
     };
 
+    // --- Сайдбар и папки ---
     const loadSidebar = () => {
         onSnapshot(query(collection(db, "chats"), where("users", "array-contains", myNick.toLowerCase())), (snap) => {
-            allChats = snap.docs.map(d => ({id: d.id, ...d.data()})); renderChats();
+            allChats = snap.docs.map(d => ({id: d.id, ...d.data()})); 
+            renderChats();
         });
     };
 
@@ -266,6 +350,7 @@
         let filtered = allChats;
         if (currentFolder === "Личные") filtered = allChats.filter(c => !c.isGroup);
         if (currentFolder === "Группы") filtered = allChats.filter(c => c.isGroup);
+        
         filtered.forEach(chat => {
             const title = chat.isGroup ? chat.name : "@" + (chat.users.find(u => u !== myNick.toLowerCase()) || "Чат");
             const div = document.createElement('div');
@@ -276,66 +361,72 @@
         });
     };
 
-    const switchChat = (id, title) => {
-        currentChatId = id;
-        document.getElementById('chat-title').innerText = title;
-        document.getElementById('sidebar').classList.remove('open');
-        document.getElementById('del-btn').classList.toggle('hidden', id === 'global');
-        if (unsubMsgs) unsubMsgs();
-        unsubMsgs = onSnapshot(query(collection(db, "messages"), where("chatId", "==", id)), (snap) => {
-            const box = document.getElementById('messages');
-            let msgs = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-            box.innerHTML = "";
-            msgs.forEach(m => {
-                const isMe = m.uid === user?.uid;
-                const avStyle = m.senderAvatar ? `background-image:url(${m.senderAvatar}); font-size:0;` : ``;
-                const avInit = m.senderAvatar ? "" : (m.senderName ? m.senderName[0] : "?").toUpperCase();
-                
-                box.innerHTML += `
-                    <div class="msg-row ${isMe ? 'me' : 'other'}">
-                        <div class="msg-avatar" style="${avStyle}">${avInit}</div>
-                        <div class="msg-content">
-                            <div class="msg-meta">
-                                <b>${m.senderNick === 'timon' ? '⭐ ' : ''}${m.senderName}</b> • ${formatTime(m.createdAt)}
-                            </div>
-                            <div class="bubble">
-                                ${parseMD(m.text || "")}
-                                ${isMe ? `<span style="font-size:10px; margin-left:5px;">${m.read ? '✓✓' : '✓'}</span>` : ''}
-                            </div>
-                        </div>
-                    </div>`;
-                if (!isMe && !m.read && currentChatId !== 'global') updateDoc(doc(db, "messages", m.id), { read: true });
-            });
-            box.scrollTop = box.scrollHeight;
+    // --- Обработчики событий ---
+    document.getElementById('sendBtn').onclick = sendMsg;
+    document.getElementById('mInput').onkeydown = (e) => { if(e.key === 'Enter') sendMsg(); };
+
+    document.getElementById('auth-btn').onclick = async () => {
+        const m = document.getElementById('email').value, p = document.getElementById('pass').value;
+        try {
+            if(isRegMode) {
+                const res = await createUserWithEmailAndPassword(auth, m, p);
+                await setDoc(doc(db, "users", res.user.uid), { 
+                    name: document.getElementById('reg-name').value, 
+                    username: document.getElementById('reg-nick').value.trim().toLowerCase(), 
+                    avatar: "" 
+                });
+            } else {
+                await signInWithEmailAndPassword(auth, m, p);
+            }
+        } catch(e) { alert(e.message); }
+    };
+
+    document.getElementById('auth-toggle').onclick = () => { 
+        isRegMode = !isRegMode; 
+        document.getElementById('reg-fields').classList.toggle('hidden', !isRegMode); 
+        document.getElementById('auth-btn').innerText = isRegMode ? "Создать аккаунт" : "Войти";
+    };
+
+    document.getElementById('u-avatar').onclick = async () => {
+        const n = prompt("Новое имя:", myName); 
+        const a = prompt("Ссылка на аватарку:", myAvatar);
+        if(n !== null || a !== null) {
+            const updateData = {};
+            if (n) updateData.name = n;
+            if (a !== null) updateData.avatar = a;
+            await updateDoc(doc(db, "users", user.uid), updateData);
+            // Принудительно обновляем локальную переменную, чтобы авы в новых сообщениях сразу работали
+            if (a !== null) myAvatar = a;
+            if (n) myName = n;
+        }
+    };
+
+    document.querySelectorAll('.folder-tab').forEach(t => t.onclick = () => {
+        document.querySelectorAll('.folder-tab').forEach(f => f.classList.remove('active'));
+        t.classList.add('active'); 
+        currentFolder = t.dataset.folder; 
+        renderChats();
+    });
+
+    document.getElementById('addChatBtn').onclick = async () => {
+        const g = confirm("Группа?"); 
+        const t = prompt("Ник/Название:");
+        if(t) await addDoc(collection(db, "chats"), { 
+            name: g?t:"", 
+            users: [myNick.toLowerCase(), ...(g?[]:[t.toLowerCase()])], 
+            isGroup: g 
         });
     };
 
-    document.getElementById('sendBtn').onclick = sendMsg;
-    document.getElementById('mInput').onkeydown = (e) => { if(e.key === 'Enter') sendMsg(); };
-    document.getElementById('auth-btn').onclick = async () => {
-        const m = document.getElementById('email').value, p = document.getElementById('pass').value;
-        if(isRegMode) {
-            const res = await createUserWithEmailAndPassword(auth, m, p);
-            await setDoc(doc(db, "users", res.user.uid), { name: document.getElementById('reg-name').value, username: document.getElementById('reg-nick').value.trim().toLowerCase(), avatar: "" });
-        } else await signInWithEmailAndPassword(auth, m, p);
-    };
-    document.getElementById('auth-toggle').onclick = () => { isRegMode = !isRegMode; document.getElementById('reg-fields').classList.toggle('hidden', !isRegMode); };
-    document.getElementById('u-avatar').onclick = async () => {
-        const n = prompt("Новое имя:", myName); const a = prompt("Ссылка на аватарку:", myAvatar);
-        if(n !== null || a !== null) await updateDoc(doc(db, "users", user.uid), { ...(n && {name:n}), ...(a !== null && {avatar:a}) });
-    };
-    document.querySelectorAll('.folder-tab').forEach(t => t.onclick = () => {
-        document.querySelectorAll('.folder-tab').forEach(f => f.classList.remove('active'));
-        t.classList.add('active'); currentFolder = t.dataset.folder; renderChats();
-    });
-    document.getElementById('addChatBtn').onclick = async () => {
-        const g = confirm("Группа?"); const t = prompt("Ник/Название:");
-        if(t) await addDoc(collection(db, "chats"), { name: g?t:"", users: [myNick.toLowerCase(), ...(g?[]:[t.toLowerCase()])], isGroup: g });
-    };
     document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => location.reload());
     document.getElementById('menuBtn').onclick = () => document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('chat-global').onclick = () => switchChat('global', 'Глобальный чат');
-    document.getElementById('del-btn').onclick = async () => { if(confirm("Удалить?")) { await deleteDoc(doc(db, "chats", currentChatId)); switchChat('global', 'Глобальный чат'); } };
+    document.getElementById('del-btn').onclick = async () => { 
+        if(confirm("Удалить этот чат?")) { 
+            await deleteDoc(doc(db, "chats", currentChatId)); 
+            switchChat('global', 'Глобальный чат'); 
+        } 
+    };
 </script>
 </body>
 </html>
